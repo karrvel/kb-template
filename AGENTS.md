@@ -5,10 +5,12 @@ knowledge base (plain-markdown, git-versioned, two-tier memory). Two jobs bring 
 
 ## Job A — initialize this kit into a target project
 The user wants a knowledge base set up in some *other* project. Follow the
-**[initialization prompt in README.md](README.md#for-agents--initialization-prompt)** verbatim — it
-handles empty/fresh and brownfield projects. In short: copy `template/` → the project's `_knowledge/`,
-`tooling/*.py` → its `_meta/`, wire the `CLAUDE.md` LIVE markers, seed shards (skeleton-first, verify
-against code), then run `kb-sync → kb-fix → kb-lint → kb-links`.
+**[initialization prompt in README.md](README.md#for-agents--initialization)** verbatim — it handles
+empty/fresh and brownfield projects. In short: copy `template/` → the project's `_knowledge/`,
+`tooling/*.py` → its `_meta/`, wire the `CLAUDE.md` LIVE markers, **mine the project's own local
+Claude/Codex session history with `prefilter.py`** (`~/.claude/projects/<encoded-cwd>/` +
+`~/.codex/sessions/` — the highest-value source of off-code knowledge), seed shards (skeleton-first,
+verify against code), then run `kb-sync → kb-fix → kb-lint → kb-links`.
 
 ## Job B — improve the kit itself
 You're editing the template, tooling, or research here. Rules:
