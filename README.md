@@ -21,7 +21,7 @@ across sessions the gotchas, decisions, and prod caveats that die with the conte
 ## Contents
 
 - [Why](#why) · [How it works](#how-it-works) · [What's inside](#whats-inside)
-- [Quick start (humans)](#quick-start-humans) · [For agents (initialization)](#for-agents--initialization)
+- [Quick start (humans)](#quick-start-humans) · [Browse in Obsidian](#browse-in-obsidian) · [For agents (initialization)](#for-agents--initialization)
 - [Maintenance loop](#maintenance-loop) · [Measured impact](#measured-impact) · [When to use it](#when-to-use-it)
 
 ## Why
@@ -100,6 +100,21 @@ python3 _meta/kb-sync.py && python3 _meta/kb-fix.py && python3 _meta/kb-lint.py 
 ```
 
 Full method (distilling a brownfield codebase + transcripts): **[HOWTO.md](HOWTO.md)**.
+
+## Browse in Obsidian
+
+The vault is plain markdown with `[[wikilinks]]`, so it's a first-class **[Obsidian](https://obsidian.md)**
+vault — as a human, just open the `_knowledge/` folder in Obsidian to read and navigate it. You get:
+
+- **🕸️ Graph view** — a visual map of how shards connect. Clusters reveal subsystems; stray dots are
+  orphaned or dead-linked shards (the same rot `kb-links` catches, but now you can *see* it).
+- **🔗 Backlinks & tags** — every shard that references the one you're reading, and filtering by the
+  `area` / `tags` frontmatter.
+- **🔎 Instant full-text search** across the whole vault.
+
+> [!NOTE]
+> No plugins required, and nothing about the format is Obsidian-specific — the same files stay
+> greppable, diff-able, and agent-readable outside it. Obsidian is just a nice lens for humans.
 
 ## For agents — initialization
 
