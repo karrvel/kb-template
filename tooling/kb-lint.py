@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""kb-lint.py — enforce the shard frontmatter schema so a vault can't drift into dialects.
+
+Companion to kb-sync.py. Where kb-sync *reads* frontmatter to generate navigation, kb-lint
+*validates* it: required fields present, enum values canonical (no `decays-with-prs` vs
+`decays-with-code`, no off-schema `done`/`complete` status), dates well-formed, names unique +
+kebab-case, and no unfilled template placeholders left behind. Idempotent, read-only, stdlib-only.
+
+Exit code 0 = clean, 1 = at least one ERROR (wire it into a pre-commit / CI hook to hold the line).
+
+CONFIG (env vars, all optional — same derivation as kb-sync.py):
+  KB_ROOT        project root (default: two dirs up from this file)
+  KB_VAULT       the vault dir                          (default: $KB_ROOT/_knowledge)
+  KB_VOLATILITY  allowed volatility values (comma list) (default: durable,decays-with-code,one-shot)
+  KB_STATUS      allowed status values                  (default: active,superseded,resolved)
+  KB_TYPES       allowed type values                    (default below)
+  KB_MAX_LINES   warn when a shard exceeds this many lines (default: 120; 0 disables)
+  KB_STRICT      "1" → treat WARN as ERROR (fail the build on warnings too)
+
+Usage:  python3 kb-lint.py            # from anywhere; lints $KB_VAULT
+        KB_STRICT=1 python3 kb-lint.py
+        KB_VOLATILITY=durable,decays-with-code,decays-with-prs,one-shot python3 kb-lint.py
+"""
+import glob, os, re, sys
+from collections import defaultdict
+
+ROOT = os.environ.get("KB_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VAULT = os.environ.get("KB_VAULT") or os.path.join(ROOT, "_knowledge")
+VOLATILITY = set((os.environ.get("KB_VOLATILITY") or "durable,decays-with-code,one-shot").split(","))
+STATUS = set((os.environ.get("KB_STATUS") or "active,superseded,resolved").split(","))
+TYPES = set((os.environ.get("KB_TYPES") or
+             "gotcha,decision,security,task,repo,architecture,reference").split(","))
+MAX_LINES = int(os.environ.get("KB_MAX_LINES", "120"))
+STRICT = os.environ.get("KB_STRICT") == "1"
+
+# The atomic-shard collections. reference/ (raw backbone) + generated files are linted leniently.
+COLLECTIONS = ["gotchas", "decisions", "security", "tasks", "repos"]
+REQUIRED = ["name", "type", "title", "status", "updated", "volatility", "provenance"]
+RECOMMENDED = ["area", "tags"]
+# Leftovers from _SHARD_TEMPLATE.md / template/README.md that mean "nobody filled this in".
+PLACEHOLDERS = ["{PROJECT}", "example-slug-kebab-case", "Copy this file, rename",
+                "One-line, specific, human-readable title", "2–5 tight sentences"]
+KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _already_quoted(v):
+    """True if v is a well-formed YAML quoted scalar. Mirrors kb-fix.already_quoted."""
+    if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
+        i = 1
+        while i < len(v) - 1:
+            if v[i] == "\\":
+                i += 2
+                continue
+            if v[i] == '"':
+                return False
+            i += 1
+        return True
+    if len(v) >= 2 and v[0] == "'" and v[-1] == "'":
+        return "'" not in v[1:-1].replace("''", "")
+    return False
+
+
+def yaml_unsafe(v):
+    """True if this scalar would make Obsidian's YAML parser error. Mirrors kb-fix.py."""
+    if not v or _already_quoted(v):
+        return False
+    if (v[0] == "[" and v[-1] == "]") or (v[0] == "{" and v[-1] == "}"):
+        return False
+    return (": " in v or v.endswith(":") or " #" in v
+            or v[0] in "!&*?|>%@`,[]{}#\"'" or "\t" in v)
+
+
+def parse(path):
+    """Return (frontmatter dict, body str). Same first-colon parsing as kb-sync.py."""
+    txt = open(path, errors="ignore").read()
+    fm, body = {}, txt
+    m = re.match(r"^---\n(.*?)\n---\n?(.*)$", txt, re.S)
+    if m:
+        body = m.group(2)
+        for ln in m.group(1).splitlines():
+            mm = re.match(r"^(\w+):\s*(.*)$", ln)
+            if mm:
+                fm[mm.group(1)] = mm.group(2).strip()
+    return fm, body
+
+
+def valid_date(s):
+    if not DATE.match(s):
+        return False
+    y, mo, d = (int(x) for x in s.split("-"))
+    return 1 <= mo <= 12 and 1 <= d <= 31
+
+
+def main():
+    if not os.path.isdir(VAULT):
+        print(f"kb-lint: no vault at {VAULT}", file=sys.stderr)
+        return 2
+
+    errors, warns = [], []
+    names_seen = defaultdict(list)   # name -> [files]  (uniqueness across the whole vault)
+    n_shards = 0
+
+    # collect shard files from the atomic collections + architecture.md (a single shard)
+    files = []
+    for c in COLLECTIONS:
+        files += sorted(glob.glob(os.path.join(VAULT, c, "*.md")))
+    arch = os.path.join(VAULT, "architecture.md")
+    if os.path.exists(arch):
+        files.append(arch)
+
+    for f in files:
+        rel = os.path.relpath(f, ROOT)
+        fm, body = parse(f)
+        n_shards += 1
+
+        def err(msg):
+            errors.append(f"{rel}: {msg}")
+
+        def warn(msg):
+            warns.append(f"{rel}: {msg}")
+
+        if not fm:
+            err("no YAML frontmatter (a shard must open with a --- block)")
+            continue
+
+        for k in REQUIRED:
+            if not fm.get(k):
+                err(f"missing required field `{k}`")
+        for k in RECOMMENDED:
+            if not fm.get(k):
+                warn(f"missing recommended field `{k}`")
+
+        name = fm.get("name", "")
+        if name:
+            names_seen[name].append(rel)
+            if not KEBAB.match(name):
+                err(f"name `{name}` is not kebab-case")
+            slug = os.path.basename(f)[:-3]
+            if slug != name and f != arch:
+                warn(f"name `{name}` != filename `{slug}` ([[links]] resolve by name)")
+
+        if fm.get("type") and fm["type"] not in TYPES:
+            err(f"type `{fm['type']}` not in {{{','.join(sorted(TYPES))}}}")
+        if fm.get("status") and fm["status"] not in STATUS:
+            err(f"status `{fm['status']}` not in {{{','.join(sorted(STATUS))}}} "
+                f"(off-schema value — pick one or extend KB_STATUS)")
+        if fm.get("volatility") and fm["volatility"] not in VOLATILITY:
+            err(f"volatility `{fm['volatility']}` not in {{{','.join(sorted(VOLATILITY))}}} "
+                f"(dialect drift — pick one or extend KB_VOLATILITY)")
+
+        upd = fm.get("updated", "")
+        if upd and not valid_date(upd):
+            err(f"updated `{upd}` is not a real YYYY-MM-DD date"
+                + (" (unfilled placeholder)" if "YYYY" in upd else ""))
+
+        for k, v in fm.items():                 # Obsidian-breaking frontmatter → run kb-fix.py
+            if yaml_unsafe(v):
+                err(f"field `{k}` has an unquoted value that breaks Obsidian's YAML "
+                    f"({v[:48]!r}…) — run kb-fix.py")
+
+        hay = (body + "\n" + "\n".join(f"{k}: {v}" for k, v in fm.items()))
+        for p in PLACEHOLDERS:
+            if p in hay:
+                err(f"unfilled template placeholder present: {p!r}")
+
+        if MAX_LINES and body.count("\n") > MAX_LINES:
+            warn(f"body is {body.count(chr(10))} lines (> {MAX_LINES}) — likely non-atomic; "
+                 f"consider splitting")
+
+    for name, locs in names_seen.items():
+        if len(locs) > 1:
+            errors.append(f"duplicate name `{name}` in: {', '.join(locs)} "
+                          f"([[{name}]] links become ambiguous)")
+
+    print(f"kb-lint: {n_shards} shards in {os.path.relpath(VAULT, ROOT)}")
+    for e in errors:
+        print(f"  ✗ ERROR  {e}")
+    for w in warns:
+        print(f"  ! warn   {w}")
+    fail = len(errors) + (len(warns) if STRICT else 0)
+    print(f"\n{len(errors)} error(s), {len(warns)} warning(s)"
+          + (" — STRICT: warnings fail too" if STRICT else "")
+          + (".  clean ✓" if fail == 0 else "."))
+    return 1 if fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

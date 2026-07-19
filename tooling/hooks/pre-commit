@@ -1,0 +1,45 @@
+#!/bin/sh
+# pre-commit — KB vault health gate: kb-fix (auto) → kb-lint (gate) → kb-links (gate).
+# Runs ONLY when _knowledge/*.md files are staged. Scripts live in _meta/.
+# Enabled via:  git config core.hooksPath .githooks   (one-time, per clone)
+# Bypass once:  git commit --no-verify
+
+ROOT="$(git rev-parse --show-toplevel)"
+META="$ROOT/_meta"
+STAGED="$(git diff --cached --name-only --diff-filter=ACM | grep -E '^_knowledge/.*\.md$')"
+[ -z "$STAGED" ] && exit 0   # nothing KB in this commit → skip
+
+PY="$(command -v python3 || command -v python)"
+[ -z "$PY" ] && { echo "✗ KB pre-commit: python3 not found on PATH"; exit 1; }
+
+fail() {
+  echo ""
+  echo "✗ KB pre-commit: $1"
+  echo "  commit aborted — fix and re-commit (bypass once with: git commit --no-verify)"
+  exit 1
+}
+
+# 1. auto-fix Obsidian-breaking frontmatter, then re-stage ONLY the files this commit already staged
+FIXOUT="$("$PY" "$META/kb-fix.py" 2>&1)" || fail "kb-fix errored:
+$FIXOUT"
+if printf '%s' "$FIXOUT" | grep -q "fixed "; then
+  printf '%s\n' "$STAGED" | while IFS= read -r f; do
+    [ -f "$ROOT/$f" ] && git add "$ROOT/$f"
+  done
+  echo "  kb-fix: quoted Obsidian-breaking frontmatter and re-staged the affected files"
+fi
+
+# 2. schema gate — block on any error
+if ! LINTOUT="$("$PY" "$META/kb-lint.py" 2>&1)"; then
+  printf '%s\n' "$LINTOUT" | grep '✗'
+  fail "schema errors (kb-lint)"
+fi
+
+# 3. link-rot gate — block on broken internal links
+if ! LINKOUT="$("$PY" "$META/kb-links.py" 2>&1)"; then
+  printf '%s\n' "$LINKOUT" | grep '✗'
+  fail "broken internal links (kb-links)"
+fi
+
+echo "✓ KB pre-commit: vault clean (fix · lint · links)"
+exit 0
