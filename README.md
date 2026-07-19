@@ -86,7 +86,7 @@ kb-template/
 │   ├── kb-links.py    link-rot gate              kb-staleness.py  the re-verify queue
 │   ├── hooks/         pre-commit gate (+advisory)  kb-eval/     measure KB impact (A/B)
 ├── HOWTO.md      the build playbook · AGENTS.md   for agents working inside the kit
-└── LICENSE.md    proprietary license
+└── SECURITY.md   handling sensitive vaults  ·  LICENSE.md  proprietary license
 ```
 
 ## Quick start (humans)
@@ -251,6 +251,6 @@ knowledge — with no hallucination penalty. Reproduce it: `tooling/kb-eval/`.
 ## Privacy & license
 
 Proprietary and confidential — © 2026 karrvel, all rights reserved. See **[LICENSE.md](LICENSE.md)**.
-Keep real vaults in **private** repos, never commit secrets, and treat distillates as confidential.
-The impact eval keeps secret-bearing traps in a git-ignored `traps.local.jsonl`; only a redacted
-example ships.
+Keep real vaults in **private** repos, never commit secrets, and treat distillates as confidential —
+handling rules are in **[SECURITY.md](SECURITY.md)**. The impact eval keeps secret-bearing traps in a
+git-ignored `traps.local.jsonl`; only a redacted example ships.

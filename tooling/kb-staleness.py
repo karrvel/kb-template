@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
 """kb-staleness.py — surface the volatile shards that are overdue for re-verification.
 
 The one discipline every vault skips: `decays-with-code` shards are accurate only as of their

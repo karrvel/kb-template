@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
 """kb-lint.py — enforce the shard frontmatter schema so a vault can't drift into dialects.
 
 Companion to kb-sync.py. Where kb-sync *reads* frontmatter to generate navigation, kb-lint

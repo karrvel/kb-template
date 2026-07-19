@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
 """run-eval.py — measure the KB's real impact: known-trap A/B (KB-ON vs KB-OFF).
 
 The rigorous "using vs not using" number. Each trap in traps.jsonl is a task whose correct answer

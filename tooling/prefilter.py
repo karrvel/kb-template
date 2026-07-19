@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
 """prefilter.py — distill Codex + Claude Code transcripts into compact, provenance-tagged
 per-session digests. Strips ~95-98% tool-call noise (keeps only user/assistant messages),
 carries provenance (session id + date + cwd), buckets by a project keyword, truncates pasted blobs.

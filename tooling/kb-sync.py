@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
 """kb-sync.py — regenerate a knowledge vault's navigation (MOC index files + INDEX.md) and its
 two memory tiers (always-loaded MEMORY.md + the CLAUDE.md LIVE sync blocks) from shard frontmatter.
 
