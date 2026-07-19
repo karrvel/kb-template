@@ -31,10 +31,14 @@ PATTERNS = [
     ("private-key-block",    re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")),
     ("aws-access-key",       re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("github-token",         re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
-    ("openai-key",           re.compile(r"\bsk-[A-Za-z0-9]{20,}\b")),
+    # OpenAI/Anthropic keys: sk-, optional family prefix (ant/proj/live/test), then ≥20 chars that
+    # MAY contain '-'/'_' — so `sk-ant-api03-…` and `sk-proj-…` match (the old `[A-Za-z0-9]{20,}`
+    # stopped at the first hyphen and missed every current-generation key).
+    ("api-key-sk",           re.compile(r"\bsk-[A-Za-z0-9][A-Za-z0-9_-]{19,}")),
     ("slack-token",          re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
     ("google-api-key",       re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
-    ("generic-secret-assign", re.compile(r"(?i)\b(?:api[_-]?key|secret|password|passwd|token)\b\s*[:=]\s*['\"][^'\"]{8,}['\"]")),
+    # secret-looking assignment; value need NOT be quoted (`TOKEN=abc…` and `key: abc…` both count).
+    ("generic-secret-assign", re.compile(r"(?i)\b(?:api[_-]?key|secret|password|passwd|token)\b\s*[:=]\s*['\"]?[^\s'\"]{8,}")),
     ("email",                re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
 ]
 # Known-safe substrings that suppress a match on the SAME line (avoid false positives). Extend freely.
@@ -81,7 +85,14 @@ def repo_root():
         return os.getcwd()
 
 def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True).stdout
+    r = subprocess.run(["git", *args], capture_output=True, text=True)
+    if r.returncode != 0:
+        # FAIL CLOSED: a git error (e.g. an invalid range on a first/root-commit push) must never
+        # be mistaken for "clean". Abort loudly so the guard blocks instead of passing empty output.
+        sys.stderr.write(f"✗ pii-scan: `git {' '.join(args)}` failed (exit {r.returncode}): "
+                         f"{r.stderr.strip()}\n")
+        sys.exit(2)
+    return r.stdout
 
 def scan_text(text, patterns, where, hits):
     for n, ln in enumerate(text.splitlines(), 1):

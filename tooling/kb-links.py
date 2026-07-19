@@ -25,12 +25,14 @@ MDLINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)]+)\)")   # [text](target), skip ![
 URL = re.compile(r"https?://[^\s)\]<>\"']+")
 FENCE = re.compile(r"```.*?```|~~~.*?~~~", re.S)        # fenced code blocks
 INLINE = re.compile(r"`[^`\n]*`")                      # inline code spans
+COMMENT = re.compile(r"<!--.*?-->", re.S)              # HTML comments (scaffold guidance, examples)
 SKIP = {"_SHARD_TEMPLATE.md"}                           # scaffold w/ intentional placeholder links
 
 
 def strip_code(txt):
-    """Drop code blocks + inline code — a [[link]] or (path) shown in an example is not a real link."""
-    return INLINE.sub("", FENCE.sub("", txt))
+    """Drop code blocks, inline code, and HTML comments — a [[link]] or (path) shown in an example
+    or a scaffold comment is not a real link to resolve."""
+    return INLINE.sub("", COMMENT.sub("", FENCE.sub("", txt)))
 
 
 def vault_md():
@@ -38,9 +40,15 @@ def vault_md():
             if os.path.basename(f) not in SKIP]
 
 
+# Navigation files kb-sync.py *generates* (INDEX.md + one MOC per collection). They're valid
+# [[wikilink]] targets even when absent — e.g. on a pristine template before the first sync, or in a
+# live vault edited since the last sync. Keep in step with kb-sync's INDEX + COLLECTIONS.
+GENERATED = {"INDEX", "gotchas", "decisions", "security", "tasks", "repos", "reference"}
+
+
 def known_names():
-    """Every shard name (basename w/o .md) — the [[wikilink]] target namespace."""
-    return {os.path.basename(f)[:-3] for f in vault_md()}
+    """Every shard name (basename w/o .md) + generated nav files — the [[wikilink]] namespace."""
+    return {os.path.basename(f)[:-3] for f in vault_md()} | GENERATED
 
 
 def target_of(wikitext):

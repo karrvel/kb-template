@@ -95,7 +95,9 @@ kb-template/
 cp -R  kb-template/template        /path/to/project/_knowledge
 mkdir -p /path/to/project/_meta && cp kb-template/tooling/*.py /path/to/project/_meta/
 cd /path/to/project
-# edit _knowledge/README.md ({PROJECT}/TODO) and add the two LIVE markers to your CLAUDE.md (HOWTO §6)
+# Fill in the scaffolds (replace {PROJECT}/TODO): _knowledge/architecture.md and _knowledge/README.md
+#   — or `rm _knowledge/architecture.md` to start with an empty vault. Then add the two LIVE markers
+#   to your CLAUDE.md (HOWTO §6). (Unfilled architecture.md only WARNS; unfilled shards ERROR.)
 python3 _meta/kb-sync.py && python3 _meta/kb-fix.py && python3 _meta/kb-lint.py && python3 _meta/kb-links.py
 ```
 

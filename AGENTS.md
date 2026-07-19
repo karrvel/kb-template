@@ -31,7 +31,10 @@ You're editing the template, tooling, or research here. Rules:
   False positive? Add the safe substring to `ALLOW` in `pii-scan.py`.
 - **The research is fact-checked.** `research/` claims were adversarially verified; don't add claims
   without a primary source, and preserve the "hedges / refuted claims" honesty.
-- Run `python3 tooling/kb-lint.py` and `python3 tooling/kb-links.py` against `template/` after changes.
+- After changing `template/`, validate it by pointing the vault at the template (the scripts default
+  `KB_VAULT` to `$KIT/_knowledge`, which doesn't exist in the kit — you must override it):
+  `KB_VAULT="$PWD/template" python3 tooling/kb-lint.py && KB_VAULT="$PWD/template" python3 tooling/kb-links.py`.
+  Both must exit 0. The unfilled `architecture.md` scaffold warns (fill-or-delete) rather than errors.
 
 ## Layout
 `research/` = why · `template/` = the vault scaffold · `tooling/` = the scripts · `HOWTO.md` = the
