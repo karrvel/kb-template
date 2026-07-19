@@ -22,6 +22,13 @@ You're editing the template, tooling, or research here. Rules:
 - **Never commit secrets or real project data.** `tooling/kb-eval/traps.jsonl` is a *redacted example*;
   real traps live in the git-ignored `traps.local.jsonl`, and `tooling/kb-eval/results/` is git-ignored.
   Before committing, scan for prod identifiers, tokens, and absolute user paths.
+- **This repo is public — a mechanical PII guard enforces it.** `tooling/pii-scan.py` (codified
+  regexes: Claude session URLs, `/Users/…` paths, tokens, emails) blocks pushes via a **pre-push**
+  hook. Enable per-clone: `ln -sf ../../tooling/hooks/pre-push .git/hooks/pre-push` (or
+  `git config core.hooksPath tooling/hooks`). User/project-specific literals (other private repo
+  names, personal emails) go in a **git-ignored** `.pii-denylist.local` at the repo root — never
+  commit it. Run manually anytime: `python3 tooling/pii-scan.py [--range origin/main..HEAD]`.
+  False positive? Add the safe substring to `ALLOW` in `pii-scan.py`.
 - **The research is fact-checked.** `research/` claims were adversarially verified; don't add claims
   without a primary source, and preserve the "hedges / refuted claims" honesty.
 - Run `python3 tooling/kb-lint.py` and `python3 tooling/kb-links.py` against `template/` after changes.

@@ -7,7 +7,7 @@ tags: [tag1, tag2]
 status: active
 updated: YYYY-MM-DD
 volatility: durable
-provenance: 2026-03-19 session ab12cd34 (or a code path / doc name)
+provenance: 2026-03-19 session ab12cd34 (or a code path / doc name; for decays-with-code prefer git-anchored: `verified vs main@a1b2c3d 2026-03-19`)
 ---
 
 # A short heading restating the trap/decision/finding/task

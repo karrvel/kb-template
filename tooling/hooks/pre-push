@@ -1,0 +1,33 @@
+#!/bin/sh
+# pre-push — mechanical guard: block pushing PII / private-context to this (public) repo.
+# Runs tooling/pii-scan.py over the tracked tree + the commit MESSAGES being pushed (history is
+# permanent once public). Codified regexes, not inference.
+# Enable per-clone:  git config core.hooksPath tooling/hooks
+#   (or symlink: ln -sf ../../tooling/hooks/pre-push .git/hooks/pre-push)
+# Bypass once (last resort):  git push --no-verify
+
+ROOT="$(git rev-parse --show-toplevel)"
+PY="$(command -v python3 || command -v python)"
+[ -z "$PY" ] && { echo "✗ pre-push: python3 not found on PATH"; exit 1; }
+SCAN="$ROOT/tooling/pii-scan.py"
+[ -f "$SCAN" ] || exit 0   # scanner absent → nothing to enforce
+
+Z="0000000000000000000000000000000000000000"
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$Z" ] && continue   # deleting a remote ref → nothing to scan
+  if [ "$remote_sha" = "$Z" ]; then
+    # new branch on the remote: scan every commit not already on any remote
+    oldest="$(git rev-list "$local_sha" --not --remotes 2>/dev/null | tail -1)"
+    if [ -n "$oldest" ]; then RANGE="${oldest}^..${local_sha}"; else RANGE="$local_sha"; fi
+  else
+    RANGE="${remote_sha}..${local_sha}"
+  fi
+  "$PY" "$SCAN" --range "$RANGE" || status=1
+done
+
+if [ "$status" != 0 ]; then
+  echo "  ↳ push ABORTED by pii-scan. Scrub the leaks above (bypass once: git push --no-verify)."
+  exit 1
+fi
+exit 0

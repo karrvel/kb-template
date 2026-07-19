@@ -85,8 +85,24 @@ python3 _meta/kb-staleness.py  # the re-verify queue: volatile shards overdue fo
 ```
 Append to `log.md` per session. Cap the always-loaded core (~30 items). Keep the taxonomy flat.
 **The rule everyone skips is `decays-with-code` re-verification — so `kb-staleness.py` exists to make
-that backlog visible; wire it into a pre-session or weekly nudge, and `kb-fix` + `kb-lint --check`
-into a pre-commit hook.** Put the volatility discipline on a timer, not on willpower.
+that backlog visible; wire it into a pre-session or weekly nudge, and `kb-fix` + `kb-lint` +
+`kb-sync.py --check` into a pre-commit hook.** Put the volatility discipline on a timer, not on willpower.
+
+**Browse it as a database:** the scaffold ships `knowledge-map.base` — open the vault in Obsidian
+(1.7+) for filtered table views per `type`. It's purely additive: Obsidian users get the view layer,
+everyone else ignores one file, and the plain-markdown core stays greppable/diff-able.
+
+## Drift smells to avoid (harvested from 5 real vaults)
+- **Never hand-write counts or totals** in INDEX/CLAUDE.md — `kb-sync.py` owns them. Hand-written
+  "173 shards" goes stale the next commit. `kb-sync.py --check` (wired into the hook) warns when any
+  generated file drifts from the shards.
+- **Don't leave `updated:` unset** — the kit stamps today's date by default; only override `KB_TODAY`
+  for reproducible builds. An `updated: unset` INDEX is a young-vault tell that kills the freshness signal.
+- **`KB_SKIP_LINT=1` invites dialect drift** — once the schema gate is off, frontmatter forks into
+  incompatible dialects (as one mature vault did). Keep lint on unless you've deliberately left the
+  template schema.
+- **For `decays-with-code`, git-anchor provenance** — `verified vs main@<sha> DATE` — so re-verification
+  can diff against the exact code state, not just a date.
 
 ## Gotchas from building a real vault (from ~1.1 GB of transcripts)
 - **UUIDv7 session ids share date-ordered prefixes** — hash the *source path* for digest filenames,
