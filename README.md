@@ -226,19 +226,24 @@ kb-sync   →   kb-fix   →   kb-lint   →   kb-links   →   kb-staleness
 
 ## Measured impact
 
-The kit's value was measured, not asserted — a controlled A/B (agent *with* the vault vs *without*),
-blinded grading, across two independent judges:
+The kit's value was measured, not asserted — a controlled A/B (same agent *with* the vault vs
+*without*, same questions), with blinded LLM grading of whether each answer surfaced the documented fact:
 
-| Question type | with KB | without KB | Δ |
-|---|--:|--:|--:|
-| **Overall** | **100%** | **31%** | **+69 pts** |
-| single-fact | 100% | 33% | +67 |
-| multi-hop reasoning | 100% | 0% | +100 |
-| synthesis / summary | 100% | 0% | +100 |
-| abstention (no hallucination) | 100% | 100% | +0 ✓ |
+| Question type | n | with KB | without KB | Δ |
+|---|--:|--:|--:|--:|
+| **Overall** | **16** | **100%** | **31%** | **+69 pts** |
+| single-fact | 12 | 100% | 33% | +67 |
+| multi-hop reasoning | 2 | 100% | 0% | +100 |
+| synthesis / summary | 1 | 100% | 0% | +100 |
+| abstention (no hallucination) | 1 | 100% | 100% | +0 ✓ |
 
-The wins concentrate exactly where a KB should help — project-specific, off-code, multi-hop
-knowledge — with no hallucination penalty. Reproduce it: `tooling/kb-eval/`.
+> **Small sample, honest caveat.** 16 known-trap questions across one operator's three real (private)
+> codebases, single judge model — *directional* evidence, not a public benchmark. The wins concentrate
+> exactly where a KB should help (project-specific, off-code, multi-hop knowledge) with no
+> hallucination penalty.
+
+Scrubbed breakdown + a sample trap: [`tooling/kb-eval/sample-report.md`](tooling/kb-eval/sample-report.md).
+Reproduce it on your own vault: [`tooling/kb-eval/`](tooling/kb-eval/).
 
 ## When to use it
 

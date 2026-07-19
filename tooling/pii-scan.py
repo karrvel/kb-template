@@ -85,12 +85,16 @@ def git(*args):
 
 def scan_text(text, patterns, where, hits):
     for n, ln in enumerate(text.splitlines(), 1):
-        if any(a in ln for a in ALLOW):
-            continue
+        # mask known-safe substrings in place (preserve offsets) so OTHER patterns on the same
+        # line still fire — do not skip the whole line.
+        masked = ln
+        for a in ALLOW:
+            if a in masked:
+                masked = masked.replace(a, " " * len(a))
         for label, rx in patterns:
-            m = rx.search(ln)
+            m = rx.search(masked)
             if m:
-                snip = m.group(0)
+                snip = m.group(0).strip()
                 if len(snip) > 60: snip = snip[:57] + "…"
                 hits.append((where, n, label, snip))
 
@@ -113,12 +117,17 @@ def main():
         except OSError:
             continue
 
-    # 2. commit messages in a range (history is permanent once public)
+    # 2. a commit range (history is permanent once public): scan BOTH messages AND file content
+    #    added anywhere in the range — a secret added in commit A and deleted in B still ships.
     rng = opt("--range")
     if rng:
         for sha in git("rev-list", rng).splitlines():
             body = git("show", "-s", "--format=%B", sha)
             scan_text(body, patterns, f"commit {sha[:9]} (message)", hits)
+        diff = git("log", "-p", "--no-color", "--unified=0", "--format=%n", rng)
+        added = "\n".join(l[1:] for l in diff.splitlines()
+                          if l.startswith("+") and not l.startswith("+++"))
+        scan_text(added, patterns, f"range {rng} (added lines in history)", hits)
 
     # 3. staged additions
     if "--staged" in sys.argv:
