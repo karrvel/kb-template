@@ -1,0 +1,33 @@
+#!/bin/sh
+# pre-commit (ADVISORY) — auto-fixes Obsidian frontmatter, REPORTS lint/link health, never blocks.
+# For vaults with pre-existing rot you haven't cleaned yet. Once clean, swap in `pre-commit`
+# (the hard gate). Runs only when _knowledge/*.md is staged. Scripts read from _meta/.
+# Enable: git config core.hooksPath .githooks
+# Per-repo env (e.g. a volatility dialect) can go in .githooks/kb.env (sourced if present).
+
+ROOT="$(git rev-parse --show-toplevel)"
+[ -f "$ROOT/.githooks/kb.env" ] && . "$ROOT/.githooks/kb.env"
+META="${KB_META:-$ROOT/_meta}"
+STAGED="$(git diff --cached --name-only --diff-filter=ACM | grep -E '^_knowledge/.*\.md$')"
+[ -z "$STAGED" ] && exit 0
+
+PY="$(command -v python3 || command -v python)"
+[ -z "$PY" ] && exit 0
+
+# 1. auto-fix Obsidian-breaking frontmatter (safe: quotes only), re-stage the staged files
+if "$PY" "$META/kb-fix.py" 2>/dev/null | grep -q "fixed "; then
+  printf '%s\n' "$STAGED" | while IFS= read -r f; do [ -f "$ROOT/$f" ] && git add "$ROOT/$f"; done
+  echo "  kb-fix: quoted Obsidian-breaking frontmatter + re-staged"
+fi
+
+# 2. report-only schema + link health (never blocks)
+# KB_SKIP_LINT=1 for vaults on a non-template frontmatter convention (kb-lint would be all noise).
+if [ "${KB_SKIP_LINT:-0}" != "1" ]; then
+  LINT="$("$PY" "$META/kb-lint.py" 2>/dev/null | grep -oE '[0-9]+ error' | head -1)"
+  [ -n "$LINT" ] && [ "$LINT" != "0 error" ] && echo "  ⚠ kb-lint: $LINT (advisory) — run: python3 _meta/kb-lint.py"
+fi
+LINK="$("$PY" "$META/kb-links.py" 2>/dev/null | grep -oE '[0-9]+ broken wikilink' | head -1)"
+[ -n "$LINK" ] && [ "$LINK" != "0 broken wikilink" ] && echo "  ⚠ kb-links: $LINK(s) (advisory) — run: python3 _meta/kb-links.py"
+
+echo "✓ KB pre-commit (advisory): committed"
+exit 0

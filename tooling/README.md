@@ -29,6 +29,26 @@ The hook reads scripts from `_meta/` and finds the repo root itself, so it's pro
 Bypass a single commit with `git commit --no-verify`. (Needs a git repo — a plain-folder vault has
 no commit to gate; run the loop manually there.)
 
+**Advisory variant** (`hooks/pre-commit-advisory`): for a vault with pre-existing rot you haven't
+cleaned yet, this auto-fixes Obsidian frontmatter but only *reports* lint/link counts — it never
+blocks. Swap in the hard `pre-commit` once the vault is clean. It sources `.githooks/kb.env` if
+present, so per-repo settings live there — e.g. `KB_VOLATILITY="durable,decays-with-code,decays-with-prs,one-shot"`
+for a non-standard dialect, or `KB_SKIP_LINT=1` for a vault that predates this frontmatter schema.
+
+**Versioning only the vault** (workspace has nested git repos or secrets in `_meta/`): `git init` at
+the workspace root, then a whitelist `.gitignore` that tracks only the vault:
+```gitignore
+/*
+!/.gitignore
+!/.githooks/
+!/_knowledge/
+!/CLAUDE.md
+_knowledge/.obsidian/
+```
+This keeps `_meta/` (secret backups), `repos/` (nested repos), and heavy dirs untracked while
+versioning the knowledge. Verify with `git diff --cached --name-only` that nothing sensitive is
+staged before the first commit.
+
 ---
 
 ## prefilter.py — transcripts → digests
