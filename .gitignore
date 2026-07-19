@@ -14,3 +14,7 @@ tooling/kb-eval/results/
 
 # scratch
 *.log
+
+# PII scan: user-specific denylist stays LOCAL — never commit to the public repo
+.pii-denylist.local
+**/*.local.txt
