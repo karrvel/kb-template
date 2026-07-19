@@ -5,7 +5,8 @@
 # Bypass once:  git commit --no-verify
 
 ROOT="$(git rev-parse --show-toplevel)"
-META="$ROOT/_meta"
+[ -f "$ROOT/.githooks/kb.env" ] && . "$ROOT/.githooks/kb.env"   # optional per-repo env
+META="${KB_META:-$ROOT/_meta}"
 STAGED="$(git diff --cached --name-only --diff-filter=ACM | grep -E '^_knowledge/.*\.md$')"
 [ -z "$STAGED" ] && exit 0   # nothing KB in this commit → skip
 
@@ -29,10 +30,13 @@ if printf '%s' "$FIXOUT" | grep -q "fixed "; then
   echo "  kb-fix: quoted Obsidian-breaking frontmatter and re-staged the affected files"
 fi
 
-# 2. schema gate — block on any error
-if ! LINTOUT="$("$PY" "$META/kb-lint.py" 2>&1)"; then
-  printf '%s\n' "$LINTOUT" | grep '✗'
-  fail "schema errors (kb-lint)"
+# 2. schema gate — block on any error. KB_SKIP_LINT=1 for vaults on a non-template frontmatter
+#    convention (kb-lint would be all noise); the links gate below still runs.
+if [ "${KB_SKIP_LINT:-0}" != "1" ]; then
+  if ! LINTOUT="$("$PY" "$META/kb-lint.py" 2>&1)"; then
+    printf '%s\n' "$LINTOUT" | grep '✗'
+    fail "schema errors (kb-lint)"
+  fi
 fi
 
 # 3. link-rot gate — block on broken internal links
