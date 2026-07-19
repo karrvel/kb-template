@@ -1,5 +1,5 @@
 #!/bin/sh
-# pre-commit — KB vault health gate: kb-fix (auto) → kb-lint (gate) → kb-links (gate).
+# pre-commit — KB vault health gate: kb-fix (auto) → kb-lint (gate) → kb-links (gate) → kb-sync --check (advisory).
 # Runs ONLY when _knowledge/*.md files are staged. Scripts live in _meta/.
 # Enabled via:  git config core.hooksPath .githooks   (one-time, per clone)
 # Bypass once:  git commit --no-verify
@@ -43,6 +43,13 @@ fi
 if ! LINKOUT="$("$PY" "$META/kb-links.py" 2>&1)"; then
   printf '%s\n' "$LINKOUT" | grep '✗'
   fail "broken internal links (kb-links)"
+fi
+
+# 4. advisory: warn (never block) if generated nav/MOCs/INDEX are stale vs the shards.
+#    Catches "edited a shard but forgot to re-run kb-sync" and hand-edited generated files.
+if ! SYNCOUT="$("$PY" "$META/kb-sync.py" --check 2>&1)"; then
+  printf '%s\n' "$SYNCOUT" | grep -E '⚠|  '
+  echo "  ↳ advisory only — run: python3 $META/kb-sync.py && git add _knowledge/"
 fi
 
 echo "✓ KB pre-commit: vault clean (fix · lint · links)"

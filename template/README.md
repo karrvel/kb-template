@@ -40,6 +40,13 @@ volatility: durable|decays-with-code|one-shot
 provenance: <where this came from — session date/id, doc, or code path>
 ---
 ```
+> **Provenance tip:** for `decays-with-code` shards, prefer a **git-anchored** provenance —
+> `verified vs main@<short-sha> YYYY-MM-DD` — so a future reader can tell exactly which code state
+> the claim was checked against. It's the strongest freshness signal a shard can carry.
+
+**Browse it as a database:** `knowledge-map.base` ships with this scaffold — open the vault in
+Obsidian (1.7+, Bases core plugin) for filtered table views per `type`. Plain markdown underneath;
+no plugin needed to read/grep/diff.
 
 ## Volatility tags (read before trusting a shard)
 - **durable** — true regardless of code state. Trust it.
