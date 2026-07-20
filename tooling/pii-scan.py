@@ -26,8 +26,10 @@ import os, re, subprocess, sys
 PATTERNS = [
     ("claude-session-url",   re.compile(r"claude\.ai/code/session[_/][A-Za-z0-9._-]+")),
     ("claude-session-trailer", re.compile(r"(?im)^\s*Claude-Session\s*:")),
-    ("home-path-users",      re.compile(r"/Users/[A-Za-z0-9._-]+/")),
-    ("home-path-home",       re.compile(r"/home/[A-Za-z0-9._-]+/")),
+    # no trailing-slash requirement — `/Users/me` at end-of-line is just as much a leak as
+    # `/Users/me/…`; the ALLOW list masks the documentation placeholders below.
+    ("home-path-users",      re.compile(r"/Users/[A-Za-z0-9._-]+")),
+    ("home-path-home",       re.compile(r"/home/[A-Za-z0-9._-]+")),
     ("private-key-block",    re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")),
     ("aws-access-key",       re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("github-token",         re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
@@ -48,8 +50,10 @@ ALLOW = [
     "user@host", "you@example", "name@example", "<email>", "example@",
     # git SSH host (public, appears in clone commands)
     "git@github.com", "git@gitlab.com",
-    # documentation placeholder home paths (real usernames stay blocked)
-    "/Users/me/", "/Users/you/", "/Users/name/", "/Users/<", "/home/me/", "/home/you/",
+    # documentation placeholder home paths (slashless so they mask with or without a trailing '/';
+    # real usernames stay blocked). `/Users/...` / `/home/...` are the ellipsis form used in docs.
+    "/Users/me", "/Users/you", "/Users/name", "/Users/<", "/Users/...",
+    "/home/me", "/home/you", "/home/...",
 ]
 # Binary/vendored paths never worth scanning.
 SKIP_PATH = re.compile(r"(?:^|/)(?:\.git/|__pycache__/|\.png$|\.jpg$|\.jpeg$|\.gif$|\.pdf$|\.ico$|\.woff2?$|\.lock$)")

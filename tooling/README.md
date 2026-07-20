@@ -10,7 +10,7 @@ python3 _meta/kb-lint.py       # 3. gate: schema valid? (exit 1 on error)  — C
 python3 _meta/kb-links.py      # 4. gate: broken [[wikilinks]] / dead file refs? — CI / pre-commit
 python3 _meta/kb-staleness.py  # 5. what volatile knowledge is overdue for re-verification?
 ```
-`kb-fix`, `kb-lint --check`, and `kb-links` are the three you want in a pre-commit hook; `kb-staleness`
+`kb-fix`, `kb-lint`, and `kb-links` are the three you want in a pre-commit hook; `kb-staleness`
 is the one you want in a pre-session / weekly nudge — it surfaces the `decays-with-code` backlog
 everyone skips. **Measuring impact** (does the KB change what the agent does): see `kb-eval/`.
 

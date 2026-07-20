@@ -24,8 +24,10 @@ from datetime import date
 ROOT = os.environ.get("KB_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VAULT = os.environ.get("KB_VAULT") or os.path.join(ROOT, "_knowledge")
 PROJECT = os.environ.get("KB_PROJECT") or os.path.basename(ROOT.rstrip("/"))
-# Claude Code encodes a project dir by replacing os.sep with '-' and prefixing '-'.
-_derived_mem = os.path.expanduser("~/.claude/projects/" + ROOT.replace("/", "-") + "/memory")
+# Claude Code encodes a project dir by replacing BOTH '/' and '.' with '-' (so `/Users/me/my.app` →
+# `-Users-me-my-app`). Encoding only '/' would misplace tier-1 memory into a dir Claude never loads
+# for any project whose path contains a dot. If your build still can't find it, set KB_MEMORY_DIR.
+_derived_mem = os.path.expanduser("~/.claude/projects/" + re.sub(r"[/.]", "-", ROOT) + "/memory")
 MEMORY_DIR = os.environ.get("KB_MEMORY_DIR") or _derived_mem
 TODAY = os.environ.get("KB_TODAY") or date.today().isoformat()
 VERSION = "0.2"
@@ -124,7 +126,8 @@ def index(counts, has_arch):
     write(os.path.join(VAULT, "INDEX.md"), "\n".join(x for x in body if x != ""))
 
 def memory(sec, tsk):
-    os.makedirs(MEMORY_DIR, exist_ok=True)
+    if not CHECK:                       # --check is read-only: never create the memory dir on disk
+        os.makedirs(MEMORY_DIR, exist_ok=True)
     live_sec = [i for i in sec if i.get("volatility") == "decays-with-code"]
     live_tsk = [i for i in tsk if i.get("status") == "active"]
     notes = sorted(os.path.basename(f) for f in glob.glob(os.path.join(MEMORY_DIR, "*.md")) if os.path.basename(f) != "MEMORY.md")
