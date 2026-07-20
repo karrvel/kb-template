@@ -131,11 +131,13 @@ def grade(prompt, criterion, answer, grader_model, endpoint=None, api_key=None):
         txt, err = openai_chat(endpoint, grader_model, gp, api_key)
         if err:
             return {"applied": None, "evidence": f"grader-endpoint-error: {err}"}
+        fail_evidence = "grader-parse-fail"
     else:                                          # default: Claude judge
         env = run_claude(claude_cmd(gp, grader_model, tools=None, budget=GRADER_BUDGET),
                          cwd=tempfile.gettempdir())
         txt = env.get("result", "") if "_error" not in env else ""
-    verdict = {"applied": None, "evidence": env.get("_error", "grader-parse-fail")}
+        fail_evidence = env.get("_error", "grader-parse-fail")
+    verdict = {"applied": None, "evidence": fail_evidence}
     for cand in (txt, txt[txt.find("{"):txt.rfind("}") + 1] if "{" in txt else ""):
         try:
             j = json.loads(cand)

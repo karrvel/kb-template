@@ -40,7 +40,7 @@ size table. **Measure before you fan out.**
   chunk returning structured items `{type, area, title, body, volatility, provenance, confidence}`,
   then one synthesis agent per collection dedupes/merges and writes atomic shards — **reading the
   existing skeleton shards first so it doesn't duplicate them.**
-- **Recency-weight.** Fully distill recent sessions; skip/ąsample old analysis runs whose output is
+- **Recency-weight.** Fully distill recent sessions; skip/sample old analysis runs whose output is
   already in `reference/`. **Log what you skip — no silent caps.**
 - Use cheaper models (e.g. Sonnet, not the frontier tier) for the fan-out — it's the token-dominant
   part. Reserve the strong model for hard verify/judge stages.

@@ -17,9 +17,16 @@ status=0
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "$Z" ] && continue   # deleting a remote ref → nothing to scan
   if [ "$remote_sha" = "$Z" ]; then
-    # new branch on the remote: scan every commit not already on any remote
+    # new branch on the remote: scan every commit not already on any remote.
     oldest="$(git rev-list "$local_sha" --not --remotes 2>/dev/null | tail -1)"
-    if [ -n "$oldest" ]; then RANGE="${oldest}^..${local_sha}"; else RANGE="$local_sha"; fi
+    # If `oldest` is the root commit, `oldest^` doesn't exist and a `${oldest}^..` range is INVALID
+    # — git would error and the scan could pass empty. This is exactly the first-push case (highest
+    # stakes). Fall back to `$local_sha` alone (= its whole ancestry) so we scan every commit.
+    if [ -n "$oldest" ] && git rev-parse -q --verify "${oldest}^" >/dev/null 2>&1; then
+      RANGE="${oldest}^..${local_sha}"
+    else
+      RANGE="$local_sha"
+    fi
   else
     RANGE="${remote_sha}..${local_sha}"
   fi

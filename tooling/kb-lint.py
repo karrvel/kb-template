@@ -113,6 +113,16 @@ def main():
     for f in files:
         rel = os.path.relpath(f, ROOT)
         fm, body = parse(f)
+
+        # architecture.md ships as a *fillable scaffold*. Until it's filled it still holds `{PROJECT}`
+        # / `updated: TODO`, which would (correctly) trip the placeholder + date checks below. That
+        # would make the documented copy-then-run flow AND the kit's own `template/` fail the gate on
+        # day one. Treat an unfilled architecture scaffold as a WARNING (fill it or delete it), not an
+        # ERROR — a filled one is linted normally, and KB_STRICT=1 still turns the warning into a fail.
+        if f == arch and (fm.get("updated") == "TODO" or fm.get("provenance") == "TODO"
+                          or "{PROJECT}" in (body + " " + fm.get("title", ""))):
+            warns.append(f"{rel}: architecture scaffold not yet filled — fill it or delete it (skipped)")
+            continue
         n_shards += 1
 
         def err(msg):

@@ -31,7 +31,7 @@ example.)
 ```bash
 python3 run-eval.py --dry-run                 # validate manifest + show exact commands, no calls
 python3 run-eval.py --limit 3 --model claude-sonnet-5     # smoke: first 3 traps end-to-end
-python3 run-eval.py --model claude-sonnet-5    # the full 12-trap run → results/report.md
+python3 run-eval.py --model claude-sonnet-5    # run every trap in the file → results/report.md
 python3 run-eval.py --only example-single-fact         # one trap by id
 python3 run-eval.py --traps traps.local.jsonl          # your real, git-ignored traps
 python3 run-eval.py --skip-grade               # run agents only …

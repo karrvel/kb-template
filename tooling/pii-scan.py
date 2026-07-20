@@ -31,10 +31,14 @@ PATTERNS = [
     ("private-key-block",    re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")),
     ("aws-access-key",       re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("github-token",         re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
-    ("openai-key",           re.compile(r"\bsk-[A-Za-z0-9]{20,}\b")),
+    # OpenAI/Anthropic keys: sk-, optional family prefix (ant/proj/live/test), then ≥20 chars that
+    # MAY contain '-'/'_' — so `sk-ant-api03-…` and `sk-proj-…` match (the old `[A-Za-z0-9]{20,}`
+    # stopped at the first hyphen and missed every current-generation key).
+    ("api-key-sk",           re.compile(r"\bsk-[A-Za-z0-9][A-Za-z0-9_-]{19,}")),
     ("slack-token",          re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
     ("google-api-key",       re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
-    ("generic-secret-assign", re.compile(r"(?i)\b(?:api[_-]?key|secret|password|passwd|token)\b\s*[:=]\s*['\"][^'\"]{8,}['\"]")),
+    # secret-looking assignment; value need NOT be quoted (`TOKEN=abc…` and `key: abc…` both count).
+    ("generic-secret-assign", re.compile(r"(?i)\b(?:api[_-]?key|secret|password|passwd|token)\b\s*[:=]\s*['\"]?[^\s'\"]{8,}")),
     ("email",                re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
 ]
 # Known-safe substrings that suppress a match on the SAME line (avoid false positives). Extend freely.
@@ -81,16 +85,27 @@ def repo_root():
         return os.getcwd()
 
 def git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True).stdout
+    r = subprocess.run(["git", *args], capture_output=True, text=True)
+    if r.returncode != 0:
+        # FAIL CLOSED: a git error (e.g. an invalid range on a first/root-commit push) must never
+        # be mistaken for "clean". Abort loudly so the guard blocks instead of passing empty output.
+        sys.stderr.write(f"✗ pii-scan: `git {' '.join(args)}` failed (exit {r.returncode}): "
+                         f"{r.stderr.strip()}\n")
+        sys.exit(2)
+    return r.stdout
 
 def scan_text(text, patterns, where, hits):
     for n, ln in enumerate(text.splitlines(), 1):
-        if any(a in ln for a in ALLOW):
-            continue
+        # mask known-safe substrings in place (preserve offsets) so OTHER patterns on the same
+        # line still fire — do not skip the whole line.
+        masked = ln
+        for a in ALLOW:
+            if a in masked:
+                masked = masked.replace(a, " " * len(a))
         for label, rx in patterns:
-            m = rx.search(ln)
+            m = rx.search(masked)
             if m:
-                snip = m.group(0)
+                snip = m.group(0).strip()
                 if len(snip) > 60: snip = snip[:57] + "…"
                 hits.append((where, n, label, snip))
 
@@ -113,12 +128,17 @@ def main():
         except OSError:
             continue
 
-    # 2. commit messages in a range (history is permanent once public)
+    # 2. a commit range (history is permanent once public): scan BOTH messages AND file content
+    #    added anywhere in the range — a secret added in commit A and deleted in B still ships.
     rng = opt("--range")
     if rng:
         for sha in git("rev-list", rng).splitlines():
             body = git("show", "-s", "--format=%B", sha)
             scan_text(body, patterns, f"commit {sha[:9]} (message)", hits)
+        diff = git("log", "-p", "--no-color", "--unified=0", "--format=%n", rng)
+        added = "\n".join(l[1:] for l in diff.splitlines()
+                          if l.startswith("+") and not l.startswith("+++"))
+        scan_text(added, patterns, f"range {rng} (added lines in history)", hits)
 
     # 3. staged additions
     if "--staged" in sys.argv:
