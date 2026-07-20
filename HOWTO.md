@@ -81,6 +81,7 @@ The loop after editing shards (see `tooling/README.md`):
 python3 _meta/kb-sync.py       # regenerate MOCs + INDEX + MEMORY.md + CLAUDE.md LIVE blocks
 python3 _meta/kb-fix.py        # quote frontmatter values that break Obsidian's strict YAML
 python3 _meta/kb-lint.py       # gate: schema valid + no dialect drift + no Obsidian-breakers
+python3 _meta/kb-links.py      # gate: broken [[wikilinks]] / dead file refs
 python3 _meta/kb-staleness.py  # the re-verify queue: volatile shards overdue for a code re-check
 ```
 Append to `log.md` per session. Cap the always-loaded core (~30 items). Keep the taxonomy flat.
