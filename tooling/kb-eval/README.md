@@ -47,7 +47,8 @@ checkpointed per trap) + `results/report.md` (the delta table).
 
 - **Documented-fact-surfaced %, ON vs OFF** — the headline. A large positive Δ = the KB is
   load-bearing; a small Δ = either the facts are already common-knowledge or the KB isn't being
-  consulted (check the read-instrumentation stats — `~/.claude/kb-metrics/`).
+  consulted (check that `CLAUDE.md` points the agent at the vault and that the fact actually lives in
+  a shard — read the KB-ON answer in `results.jsonl` to see whether it opened the vault at all).
 - **input-tokens ON vs OFF** — the KB's *cost* (context it adds every session). Shown honestly so
   you weigh benefit against price.
 - `•` in a cell = a run or grade errored; it's excluded from the rates, re-run it.

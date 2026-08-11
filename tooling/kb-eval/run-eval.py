@@ -100,6 +100,17 @@ def metrics(env):
     }
 
 
+def gradeable(m):
+    """A run is gradeable only if it actually produced an answer. A timeout / empty stdout / budget
+    abort / API error must NOT be graded — a failed run is not evidence the KB missed. Such rows keep
+    applied=None and are excluded from the rates (shown '•'), not counted as ❌."""
+    return bool(m.get("result")) and not m.get("error") and not m.get("is_error")
+
+
+def _mark(applied):
+    return "•" if applied is None else ("✅" if applied else "❌")
+
+
 def openai_chat(endpoint, model, prompt, api_key=None):
     """Call an OpenAI-compatible /v1/chat/completions endpoint (LM Studio :1234, OLLM, etc.).
     Enables a genuine CROSS-FAMILY judge (e.g. a local Qwen grading Claude answers) — the research
@@ -300,8 +311,7 @@ def main():
         rows = [json.loads(l) for l in open(res_path)] if os.path.exists(res_path) else []
         for r in rows:
             for cond in ("on", "off"):
-                if r.get(cond):
-                    t = next((x for x in traps if x["id"] == r["id"]), None) or {}
+                if r.get(cond) and gradeable(r[cond]["m"]):   # skip errored/empty runs (stay '•')
                     r[cond]["applied"] = grade(r.get("prompt", ""), r.get("criterion", ""),
                                                r[cond]["m"].get("result", ""), a.grader_model,
                                                a.grader_endpoint, a.grader_key)["applied"]
@@ -327,12 +337,13 @@ def main():
             env_off = run_claude(claude_cmd(t["prompt"], a.model, AGENT_TOOLS), cwd=off_dir)
             row["off"] = {"m": metrics(env_off), "applied": None}
             if not a.skip_grade:
-                row["on"]["applied"] = grade(t["prompt"], t["criterion"], row["on"]["m"]["result"],
-                                             a.grader_model, a.grader_endpoint, a.grader_key)["applied"]
-                row["off"]["applied"] = grade(t["prompt"], t["criterion"], row["off"]["m"]["result"],
-                                              a.grader_model, a.grader_endpoint, a.grader_key)["applied"]
-                print(f"     ON={'✅' if row['on']['applied'] else '❌'}  "
-                      f"OFF={'✅' if row['off']['applied'] else '❌'}")
+                for cond in ("on", "off"):
+                    m = row[cond]["m"]
+                    if not gradeable(m):     # run errored/empty → leave applied=None (excluded '•'),
+                        continue             # never grade a failed run as a KB miss
+                    row[cond]["applied"] = grade(t["prompt"], t["criterion"], m["result"],
+                                                 a.grader_model, a.grader_endpoint, a.grader_key)["applied"]
+                print(f"     ON={_mark(row['on']['applied'])}  OFF={_mark(row['off']['applied'])}")
             results.append(row)
             with open(res_path, "w") as f:      # checkpoint each trap
                 for r in results:

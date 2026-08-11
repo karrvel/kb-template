@@ -7,7 +7,9 @@
 ROOT="$(git rev-parse --show-toplevel)"
 [ -f "$ROOT/.githooks/kb.env" ] && . "$ROOT/.githooks/kb.env"   # optional per-repo env
 META="${KB_META:-$ROOT/_meta}"
-STAGED="$(git diff --cached --name-only --diff-filter=ACM | grep -E '^_knowledge/.*\.md$')"
+VAULT="${KB_VAULT:-$ROOT/_knowledge}"           # honor KB_VAULT (kb.env can set it); default _knowledge
+VREL="${VAULT#"$ROOT"/}"                          # repo-relative vault dir for staged-path matching
+STAGED="$(git diff --cached --name-only --diff-filter=ACM | grep -E "^${VREL}/.*\.md$")"
 [ -z "$STAGED" ] && exit 0   # nothing KB in this commit → skip
 
 PY="$(command -v python3 || command -v python)"
@@ -24,8 +26,12 @@ fail() {
 FIXOUT="$("$PY" "$META/kb-fix.py" 2>&1)" || fail "kb-fix errored:
 $FIXOUT"
 if printf '%s' "$FIXOUT" | grep -q "fixed "; then
-  printf '%s\n' "$STAGED" | while IFS= read -r f; do
-    [ -f "$ROOT/$f" ] && git add "$ROOT/$f"
+  # Re-stage ONLY files kb-fix actually rewrote AND that were already staged — never blanket-add
+  # every staged file (that would sweep unrelated unstaged hunks of a `git add -p`'d file into the
+  # commit). kb-fix prints "  fixed  <rel>  (N value(s))"; pull <rel> from column 3.
+  FIXED="$(printf '%s\n' "$FIXOUT" | awk -F'  +' '/^  fixed  /{print $3}')"
+  printf '%s\n' "$FIXED" | while IFS= read -r f; do
+    [ -n "$f" ] && [ -f "$ROOT/$f" ] && printf '%s\n' "$STAGED" | grep -qxF "$f" && git add "$ROOT/$f"
   done
   echo "  kb-fix: quoted Obsidian-breaking frontmatter and re-staged the affected files"
 fi
