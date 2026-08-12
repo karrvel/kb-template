@@ -12,13 +12,20 @@ if [ ! -d "$VAULT/gotchas" ]; then
     exit 0
 fi
 
-echo "=== Active gotchas ($(ls "$VAULT/gotchas/"*.md 2>/dev/null | wc -l | tr -d ' ') shards) ==="
+_active_count=0
+for f in "$VAULT/gotchas/"*.md; do
+    [ -f "$f" ] || continue
+    _s="$(grep '^status:' "$f" | head -1 | sed 's/status: *//')"
+    { [ "$_s" = "superseded" ] || [ "$_s" = "resolved" ]; } && continue
+    _active_count=$((_active_count + 1))
+done
+echo "=== Active gotchas ($_active_count shards) ==="
 for f in "$VAULT/gotchas/"*.md; do
     [ -f "$f" ] || continue
     name="$(grep '^name:' "$f" | head -1 | sed 's/name: *//')"
     title="$(grep '^title:' "$f" | head -1 | sed 's/title: *//' | tr -d '"')"
     status="$(grep '^status:' "$f" | head -1 | sed 's/status: *//')"
-    [ "$status" = "superseded" ] || [ "$status" = "resolved" ] && continue
+    { [ "$status" = "superseded" ] || [ "$status" = "resolved" ]; } && continue
     printf "  [[%s]] — %s\n" "$name" "$title"
 done
 
