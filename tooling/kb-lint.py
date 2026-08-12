@@ -38,6 +38,7 @@ STRICT = os.environ.get("KB_STRICT") == "1"
 COLLECTIONS = ["gotchas", "decisions", "security", "tasks", "repos"]
 REQUIRED = ["name", "type", "title", "status", "updated", "volatility", "provenance"]
 RECOMMENDED = ["area", "tags"]
+OPTIONAL = ["verify", "live_summary"]   # verify: date of last human re-verification; live_summary: short phrase for LIVE blocks
 # Leftovers from _SHARD_TEMPLATE.md / template/README.md that mean "nobody filled this in".
 PLACEHOLDERS = ["{PROJECT}", "example-slug-kebab-case", "Copy this file, rename",
                 "One-line, specific, human-readable title", "2–5 tight sentences"]
