@@ -38,6 +38,9 @@ status: active|superseded|resolved
 updated: YYYY-MM-DD
 volatility: durable|decays-with-code|one-shot
 provenance: <where this came from — session date/id, doc, or code path>
+# optional fields:
+verify: YYYY-MM-DD          # date of last human re-verification; planned for kb-staleness reporting
+live_summary: <short phrase> # shown in LIVE blocks instead of title: (max ~80 chars)
 ---
 ```
 > **Provenance tip:** for `decays-with-code` shards, prefer a **git-anchored** provenance —

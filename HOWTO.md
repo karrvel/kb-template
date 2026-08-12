@@ -65,6 +65,16 @@ Then:
 python3 _meta/kb-sync.py     # generates MOCs + INDEX.md + MEMORY.md + fills the CLAUDE.md blocks
 ```
 
+### Install the hook (required once per clone)
+```bash
+# 1. Copy the hook into your project's .githooks/ dir:
+cp ~/Projects/kb-template/repos/kb-template/tooling/hooks/pre-commit /path/to/project/.githooks/pre-commit
+chmod +x /path/to/project/.githooks/pre-commit
+# 2. Tell git to use that dir (required once per clone):
+git config core.hooksPath .githooks
+```
+The hook runs kb-fix → kb-lint → kb-links → kb-sync --check whenever `_knowledge/*.md` files are staged. There is no `init.sh` in the kit; run the two commands above manually after each clone.
+
 ### Loading semantics (verified against Claude Code docs) {#loading-semantics}
 - **`CLAUDE.md` loads hierarchically** — from cwd *up* the tree. A workspace-root `CLAUDE.md` loads
   even when you start a session inside a subdir/repo. → the LIVE sync blocks reach per-repo work.
