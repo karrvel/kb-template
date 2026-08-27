@@ -7,15 +7,19 @@ knowledge base (plain-markdown, git-versioned, two-tier memory). Two jobs bring 
 The user wants a knowledge base set up in some *other* project. Follow the
 **[initialization prompt in README.md](README.md#agent-initialization)** verbatim — it handles
 empty/fresh and brownfield projects. In short: copy `template/` → the project's `_knowledge/`,
-`tooling/*.py` → its `_meta/`, wire the `CLAUDE.md` LIVE markers, mine all three raw sources below
-(skeleton-first, verify against code), then run `kb-sync → kb-fix → kb-lint → kb-links`.
+`tooling/*.py` **and** `tooling/*.sh` → its `_meta/`, wire the `CLAUDE.md` LIVE markers, mine all
+three raw sources below (skeleton-first, verify against code), then run
+`kb-sync → kb-fix → kb-lint → kb-links`.
 
 If the target project already has its own root `AGENTS.md` (or `GEMINI.md` / `.cursor/rules/kb-context.mdc`),
 `kb-sync.py` will **not** clobber it: any such file it didn't write itself is reported with a warning
-and skipped, and the run continues normally (exit 0). Handle it deliberately — merge the generated
-cold-start block into the existing file by hand, rename/remove the file, or drop that platform from
-`KB_PLATFORMS` — then re-run. Also make sure a project-root `CLAUDE.md` exists before the first
-`kb-sync` run, or it warns that the LIVE blocks aren't wired.
+and skipped, and the run continues normally (exit 0). Handle it deliberately — **rename or move the
+existing file, or drop that platform from `KB_PLATFORMS`** — then re-run. **Never paste the
+generated block into the existing file:** the block opens with kb-sync's ownership marker, so the
+next run would consider the file its own and overwrite it wholesale. (Ownership is that marker
+alone — an HTML comment at the start of a line within the file's first 10 lines; prose that merely
+*mentions* the marker does not make a file owned.) Also make sure a project-root `CLAUDE.md` exists
+before the first `kb-sync` run, or it warns that the LIVE blocks aren't wired and continues (exit 0).
 
 ### Raw sources to mine at init (in priority order)
 

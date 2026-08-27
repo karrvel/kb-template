@@ -209,6 +209,13 @@ def main() -> int:
                     print()
                     print(_colour(NO_TTY, "31"))
                     return 3          # stop here — pin stays at the previous version
+                except KeyboardInterrupt:
+                    # Ctrl+C at the prompt is a normal way to bail out of a tool that
+                    # overwrites executable scripts — report state, never a traceback.
+                    print()
+                    print(_colour(f"Interrupted. Applied {applied}/{total} script(s); "
+                                  f"version pin left at {current_ver}.", "33"))
+                    return 1
                 if choice in ("y", "yes"):
                     shutil.copy2(remote, local)
                     print(_colour(f"  ✓ applied", "32"))
@@ -256,4 +263,8 @@ def _write_version(script_dir: str, version: str) -> None:
         f.write(version + "\n")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:          # Ctrl+C outside the prompt (e.g. during the clone)
+        print("\nInterrupted.")
+        sys.exit(1)

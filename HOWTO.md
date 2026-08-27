@@ -20,17 +20,19 @@ First, choose your setup model (see the [README](README.md#choose-your-setup) fo
 
 Then scaffold:
 ```bash
-git clone --depth 1 https://github.com/karrvel/kb-template.git /tmp/kb-template
+# clone into a fresh dir — never a fixed /tmp path, a stale clone silently installs a stale kit
+KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT"
 
 # copy vault scaffold
-cp -R /tmp/kb-template/template        <your-root>/_knowledge
-mkdir -p <your-root>/_meta
-cp     /tmp/kb-template/tooling/*.py   <your-root>/_meta/
+cp -R "$KIT/template" <your-root>/_knowledge
+
+# copy the scripts — both the Python tools and the shell helpers
+mkdir -p <your-root>/_meta && cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh <your-root>/_meta/
 
 # copy gitignore for your chosen option (A or B)
-cp /tmp/kb-template/setup/workspace.gitignore <your-root>/.gitignore   # Option A
+cp "$KIT/setup/workspace.gitignore" <your-root>/.gitignore     # Option A
 # — OR —
-cat /tmp/kb-template/setup/embedded.gitignore >> <your-root>/.gitignore  # Option B
+cat "$KIT/setup/embedded.gitignore" >> <your-root>/.gitignore  # Option B
 ```
 Edit `_knowledge/README.md`: replace `{PROJECT}` and `TODO`. Add the two LIVE sync-block markers to
 your project-root `CLAUDE.md` (see step 6).
@@ -99,41 +101,63 @@ python3 _meta/kb-sync.py     # generates MOCs + INDEX.md + MEMORY.md + fills the
 
 ### Install the hook (required once per clone)
 ```bash
+# reusing $KIT from step 1 — in a new shell, re-run the clone line there first
 mkdir -p /path/to/project/.githooks
-cp /tmp/kb-template/tooling/hooks/pre-commit /path/to/project/.githooks/pre-commit
+cp "$KIT/tooling/hooks/pre-commit" /path/to/project/.githooks/pre-commit
 chmod +x /path/to/project/.githooks/pre-commit
-git -C /path/to/project config core.hooksPath .githooks
+git -C /path/to/project config core.hooksPath .githooks   # ← not in a repo that already has hooks; see below
 ```
-The hook runs kb-fix → kb-lint → kb-links → kb-sync --check whenever `_knowledge/*.md` files are staged. Run the two commands above manually after each fresh clone — there is no install script.
+The hook fires whenever files under the vault dir are staged, and runs exactly four stages:
+kb-fix (auto-fix, never blocks) → kb-lint (blocks) → kb-links (blocks) → kb-sync --check
+(advisory, warns only). It also emits a non-blocking nudge when paths listed in `KB_CODE_PATHS` are
+staged. Run the four commands above manually after each fresh clone — there is no install script.
 
 > ⚠️ `core.hooksPath` **replaces** `.git/hooks` wholesale — every hook the project already had
 > (husky, lefthook, lint-staged, a `commit-msg` gate…) stops firing. If the repo has hooks already,
-> either move them into `.githooks/` too, or skip `core.hooksPath` and symlink just this one:
+> either move them into `.githooks/` too, or skip `core.hooksPath` and install this one without
+> clobbering what's there:
 > ```bash
-> ln -sf ../../.githooks/pre-commit /path/to/project/.git/hooks/pre-commit
+> # while core.hooksPath is set, .git/hooks/ is ignored entirely — undo it first
+> # (a pre-existing value someone else set, e.g. husky's .husky, is left alone):
+> [ "$(git config core.hooksPath)" = .githooks ] && git config --unset core.hooksPath
+> # install only if nothing is there; never overwrite an existing hook
+> [ -e .git/hooks/pre-commit ] \
+>   && echo "pre-commit hook exists — chain the KB gate from it instead (see below)" \
+>   || ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit
 > ```
 > (the target is relative to `.git/hooks/`, so `../../.githooks/pre-commit` resolves from the repo root).
+>
+> If a hook is already there, **chain** the KB gate from it — append this line to the existing
+> `.git/hooks/pre-commit`:
+> ```bash
+> . "$(git rev-parse --show-toplevel)"/.githooks/pre-commit
+> ```
+> Until one of these three is done — `core.hooksPath`, the symlink, or the chain line — **the KB
+> gate is not running** and commits go through unchecked. And if `git config core.hooksPath` already
+> prints some other path, a symlink under `.git/hooks/` never runs: put the gate in that directory instead.
 
 ### Multi-platform support {#multi-platform}
 
 kb-sync.py generates context files for multiple agent platforms from the same vault. Control which
-files are generated with the `KB_PLATFORMS` env var — it must be **exported in the environment of the
-kb-sync run itself**, since that is the only thing kb-sync reads:
+files are generated with the `KB_PLATFORMS` env var — comma-separated, default
+`claude,codex,gemini,cursor`, whitespace around items tolerated. It must be **exported in the
+environment of the kb-sync run itself**, since that is the only thing kb-sync reads:
 
 ```sh
 python3 _meta/kb-sync.py                              # default — all four platforms
-KB_PLATFORMS=claude python3 _meta/kb-sync.py          # one run, Claude only
+KB_PLATFORMS=claude,gemini python3 _meta/kb-sync.py   # one run, Claude + Gemini only
 export KB_PLATFORMS="claude,codex"                    # or set it for the whole shell / profile
 ```
 
 Setting it in `.githooks/kb.env` is *not* enough on its own: that file is sourced only by the
 pre-commit hook's own shell (and a variable there reaches python only if it is `export`ed), and the
-hook runs `kb-sync.py --check`, which never writes. Put it in `kb.env` to keep the hook's check
+hook runs `kb-sync.py --check`, which never writes. Put `export KB_PLATFORMS=…` (the `export` is not
+optional — the scripts are child processes of that shell) in `kb.env` to keep the hook's check
 consistent with your platform choice — but export it in your shell for the runs that generate files.
 
 | Platform | File generated | Notes |
 |---|---|---|
-| `claude` | `~/.claude/projects/…/MEMORY.md` | Claude Code auto-load tier |
+| `claude` | `~/.claude/projects/…/MEMORY.md` **and** the `CLAUDE.md` LIVE blocks | Claude Code auto-load tier — both halves are one platform, so dropping `claude` also stops the LIVE blocks being filled |
 | `codex` | `AGENTS.md` | OpenAI Codex CLI; also read by Antigravity ≥ v1.20.3 |
 | `gemini` | `GEMINI.md` | Google Antigravity native; takes priority over `AGENTS.md` within Antigravity |
 | `cursor` | `.cursor/rules/kb-context.mdc` | Cursor rules (frontmatter: `alwaysApply: true`) |
@@ -144,11 +168,16 @@ findings, open work). They are regenerated by `kb-sync.py` — do not hand-edit 
 **Collision guard.** For the three project-root files (`AGENTS.md`, `GEMINI.md`,
 `.cursor/rules/kb-context.mdc`) kb-sync refuses to overwrite a file that already exists but carries no
 kb-sync generated-by marker — i.e. one *you* wrote. It prints a warning naming the file, tells you to
-remove/rename it or drop that platform from `KB_PLATFORMS`, skips it and continues (exit code stays
-0). So a project with its own hand-written `AGENTS.md` keeps it; merge the generated block in by hand
-if you want both. `MEMORY.md`, `INDEX.md` and the MOCs are not covered by the guard — they are
-kb-sync's own files and are always rewritten. If no project-root `CLAUDE.md` exists at all, kb-sync
-warns that the LIVE blocks were not wired instead of failing silently.
+rename/move it or drop that platform from `KB_PLATFORMS`, skips it and continues (exit code stays 0).
+So a project with its own hand-written `AGENTS.md` keeps it — and those two are the whole remedy:
+**never paste the generated block into your own file.** The block starts with the ownership marker,
+so the merged file counts as kb-sync's from then on and the next run overwrites everything you wrote.
+Ownership is detected from that marker only — an HTML comment at the start of a line within the first
+10 lines — so a doc that merely *mentions* the marker in prose is not treated as owned.
+`MEMORY.md`, `INDEX.md` and the MOCs are not covered by the guard — they are kb-sync's own files and
+are always rewritten. If no project-root `CLAUDE.md` exists at all, kb-sync warns that the LIVE
+blocks were not wired and continues (exit 0) — they stay unwired until you create it with the two
+marker pairs.
 
 Commit `AGENTS.md`, `GEMINI.md`, and `.cursor/rules/kb-context.mdc` to the repo. `MEMORY.md` lives
 outside the repo (in the Claude Code project-memory dir) and is never committed.
@@ -175,7 +204,7 @@ python3 _meta/kb-staleness.py  # the re-verify queue: volatile shards overdue fo
 Append to `log.md` per session. Cap the always-loaded core (~30 items). Keep the taxonomy flat.
 **The rule everyone skips is `decays-with-code` re-verification — so `kb-staleness.py` exists to make
 that backlog visible; wire it into a pre-session or weekly nudge, and `kb-fix` + `kb-lint` +
-`kb-sync.py --check` into a pre-commit hook.** Put the volatility discipline on a timer, not on willpower.
+`kb-links` + `kb-sync.py --check` into a pre-commit hook.** Put the volatility discipline on a timer, not on willpower.
 
 **Browse it as a database:** the scaffold ships `knowledge-map.base` — open the vault in Obsidian
 (1.7+) for filtered table views per `type`. It's purely additive: Obsidian users get the view layer,
@@ -191,14 +220,17 @@ python3 _meta/kb-update.py --yes    # silent — 8-second countdown + warning, t
 python3 _meta/kb-update.py --check  # dry-run — shows what would change, exit 1 if updates exist
 ```
 
-Your `_knowledge/` vault is never touched. A `kb.version` file is written to `_meta/` after each
-update so the script knows your current pin. See the [README](README.md#updating-the-kit) for the
-silent-mode warning.
+It updates only the top-level `tooling/*.py` scripts copied into `_meta/` — not `hooks/`, not
+`kb-eval/`, not the `*.sh` helpers. Your `_knowledge/` vault is never touched. The `kb.version` pin
+in `_meta/` is written **only when every offered script was applied** — a partial or declined run
+leaves the old pin, and `--check` never writes it at all. See the
+[README](README.md#updating-the-kit) for the silent-mode warning.
 
 ## Drift smells to avoid (harvested from 5 real vaults)
 - **Never hand-write counts or totals** in INDEX/CLAUDE.md — `kb-sync.py` owns them. Hand-written
-  "173 shards" goes stale the next commit. `kb-sync.py --check` (wired into the hook) warns when any
-  generated file drifts from the shards.
+  "173 shards" goes stale the next commit. `kb-sync.py --check` (wired into the hook, advisory only)
+  warns when the files it generates drift from the shards — it does *not* check the `CLAUDE.md` LIVE
+  blocks, so re-run a plain `kb-sync.py` to refresh those.
 - **Don't leave `updated:` unset** — the kit stamps today's date by default; only override `KB_TODAY`
   for reproducible builds. An `updated: unset` INDEX is a young-vault tell that kills the freshness signal.
 - **`KB_SKIP_LINT=1` invites dialect drift** — once the schema gate is off, frontmatter forks into

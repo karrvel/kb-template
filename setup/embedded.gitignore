@@ -10,6 +10,7 @@
 #   ├── _knowledge/    ← tracked alongside your source code
 #   ├── _meta/         ← untracked (kit scripts — disposable copy)
 #   ├── src/           ← your code (tracked as normal)
+#   ├── .cursor/rules/ ← tracked (kb-sync output)
 #   └── CLAUDE.md      ← tracked
 
 # kb-template tooling — disposable local copy, never publish
@@ -17,6 +18,10 @@ _meta/
 
 # PII denylist — machine-specific, never commit
 .pii-denylist.local
+
+# Cursor MCP server config — can hold API tokens, never commit
+# (.cursor/rules/ stays tracked — it's kb-sync output)
+.cursor/mcp.json
 
 # Digest output from prefilter.py — large, never commit
 _kb-digests/
