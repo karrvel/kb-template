@@ -225,6 +225,29 @@ kb-sync   →   kb-fix   →   kb-lint   →   kb-links   →   kb-staleness
 > `kb-staleness` on a **pre-session / weekly** nudge. Re-verifying `decays-with-code` shards is the
 > discipline everyone skips — automate it, don't rely on willpower. See [tooling/README.md](tooling/README.md).
 
+## Updating the kit
+
+When a new version ships, pull in the updated scripts with the bundled updater:
+
+```bash
+# interactive (recommended) — shows a diff for each script, prompts before applying
+python3 _meta/kb-update.py
+
+# silent — overwrites immediately; prints a warning and a countdown first
+python3 _meta/kb-update.py --yes
+
+# dry-run — show what would change, exit 1 if updates exist (useful in CI)
+python3 _meta/kb-update.py --check
+```
+
+Only the `*.py` scripts in your `_meta/` directory are updated. Your `_knowledge/` vault is never
+touched — it belongs to your project, not the kit.
+
+> [!WARNING]
+> Silent mode (`--yes`) skips the diff review. Run the interactive mode at least once on a new
+> version before using `--yes` in automation — script changes can affect how secrets and paths
+> are handled.
+
 ## Measured impact
 
 The kit's value was measured, not asserted — a controlled A/B (same agent *with* the vault vs
