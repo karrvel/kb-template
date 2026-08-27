@@ -38,10 +38,11 @@ python3 run-eval.py --skip-grade               # run agents only …
 python3 run-eval.py --grade-only               # … then grade an existing results.jsonl
 ```
 
-Cost: each trap is ~2 agent calls + 2 grader calls. On Sonnet, budget ~**$0.30–0.60 per trap**
-(~$4–7 for the full 12). `--max-budget-usd` is wired as a runaway safety net per call; the real
-bound is the subprocess timeout. Scale with `--limit`. Outputs: `results/results.jsonl` (raw,
-checkpointed per trap) + `results/report.md` (the delta table).
+Cost: each trap is ~2 agent calls + 2 grader calls. On Sonnet, budget ~**$0.30–0.60 per trap** —
+multiply by the line count of the trap file you point at (`wc -l traps.jsonl`); the committed
+example file holds 6 traps, so a full run of it is ~$2–4. `--max-budget-usd` is wired as a runaway
+safety net per call; the real bound is the subprocess timeout. Scale with `--limit`. Outputs:
+`results/results.jsonl` (raw, checkpointed per trap) + `results/report.md` (the delta table).
 
 ## Reading the result
 

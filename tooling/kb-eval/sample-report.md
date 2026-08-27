@@ -1,8 +1,9 @@
 # KB impact — sample A/B report (scrubbed)
 
 A worked, PII-scrubbed excerpt of a real known-trap A/B run. The full run used **private** vaults, so
-project names and the documented facts themselves are redacted here — that confidential off-code
-knowledge is exactly what the kit exists to preserve. Reproduce the method on your own vault with the
+project names and the documented facts themselves are redacted here: they belong to the operator
+whose vaults were measured, and that kind of private, off-code knowledge is exactly what the kit
+exists to preserve. Reproduce the method on your own vault with the
 scripts in this directory (`run-eval.py`, `traps.jsonl`).
 
 ## Method

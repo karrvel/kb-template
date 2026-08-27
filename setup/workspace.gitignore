@@ -8,6 +8,9 @@
 #   ├── _meta/         ← untracked (kit scripts — disposable copy)
 #   ├── repos/         ← untracked (your actual projects, each their own git)
 #   ├── CLAUDE.md      ← tracked
+#   ├── AGENTS.md      ← tracked (kb-sync output)
+#   ├── GEMINI.md      ← tracked (kb-sync output)
+#   ├── .cursor/rules/ ← tracked (kb-sync output)
 #   └── .githooks/     ← tracked (the pre-commit gate)
 
 /*
@@ -15,6 +18,13 @@
 !/.githooks/
 !/_knowledge/
 !/CLAUDE.md
+# generated agent-context files — HOWTO says commit these
+!/AGENTS.md
+!/GEMINI.md
+!/.cursor/
+# ...but only the rules dir — .cursor/mcp.json can hold API tokens
+/.cursor/*
+!/.cursor/rules/
 
 # Obsidian UI state — never commit
 _knowledge/.obsidian/

@@ -5,10 +5,17 @@ knowledge base (plain-markdown, git-versioned, two-tier memory). Two jobs bring 
 
 ## Job A — initialize this kit into a target project
 The user wants a knowledge base set up in some *other* project. Follow the
-**[initialization prompt in README.md](README.md#for-agents--initialization)** verbatim — it handles
+**[initialization prompt in README.md](README.md#agent-initialization)** verbatim — it handles
 empty/fresh and brownfield projects. In short: copy `template/` → the project's `_knowledge/`,
 `tooling/*.py` → its `_meta/`, wire the `CLAUDE.md` LIVE markers, mine all three raw sources below
 (skeleton-first, verify against code), then run `kb-sync → kb-fix → kb-lint → kb-links`.
+
+If the target project already has its own root `AGENTS.md` (or `GEMINI.md` / `.cursor/rules/kb-context.mdc`),
+`kb-sync.py` will **not** clobber it: any such file it didn't write itself is reported with a warning
+and skipped, and the run continues normally (exit 0). Handle it deliberately — merge the generated
+cold-start block into the existing file by hand, rename/remove the file, or drop that platform from
+`KB_PLATFORMS` — then re-run. Also make sure a project-root `CLAUDE.md` exists before the first
+`kb-sync` run, or it warns that the LIVE blocks aren't wired.
 
 ### Raw sources to mine at init (in priority order)
 
@@ -21,10 +28,10 @@ git log --oneline | head -100
 # detailed recent history — decisions, gotchas, incident responses
 git log --format="%ad %h %s%n%b" --date=short --since="6 months ago"
 
-# files that change together most — reveals coupling and hot spots
-git log --pretty=format: --name-only | sort | uniq -c | sort -rn | head -30
+# most-frequently-modified files — the hot spots worth documenting first
+git log --pretty=format: --name-only | grep -v '^$' | sort | uniq -c | sort -rn | head -30
 
-# biggest single-commit churn — often marks a rewrite or incident fix
+# per-commit churn, newest first — scan for the outsized ones (rewrite or incident fix)
 git log --shortstat --since="1 year ago" | grep -E "files? changed"
 ```
 Look specifically for: commit messages mentioning "fix", "bug", "revert", "hotfix", "do not",

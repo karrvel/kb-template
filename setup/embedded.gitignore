@@ -1,4 +1,7 @@
+
 # Embedded-model additions — add these lines to your project's existing .gitignore.
+# (This file starts with a blank line on purpose, so `cat embedded.gitignore >>
+# .gitignore` can never fuse onto an existing last rule that lacks a newline.)
 # The vault (_knowledge/) is tracked by your project's git like any other directory.
 # Only the kb-template scripts and local tooling files are excluded.
 #
@@ -12,17 +15,17 @@
 # kb-template tooling — disposable local copy, never publish
 _meta/
 
-# kb-update version pin — local to this machine
-_meta/kb.version
-
 # PII denylist — machine-specific, never commit
 .pii-denylist.local
 
 # Digest output from prefilter.py — large, never commit
 _kb-digests/
 
-# kb-eval results — may contain sensitive trap data
-_knowledge/../tooling/kb-eval/results/
+# kb-eval results — may contain sensitive trap data (matches at any depth)
+**/kb-eval/results/
+
+# Obsidian UI state — per-machine, never commit
+_knowledge/.obsidian/
 
 # macOS
 .DS_Store

@@ -9,6 +9,11 @@ Usage:
   python3 _meta/kb-update.py            # interactive — shows diffs, prompts before each file
   python3 _meta/kb-update.py --yes      # silent — overwrites without prompting (read the warning)
   python3 _meta/kb-update.py --check    # dry-run — show what would change, exit 1 if updates exist
+                                        #   (--dry-run / -n are aliases; --check never writes)
+
+Exit codes:
+  0  nothing to do, or scripts applied      2  usage error, or git clone failed
+  1  updates exist (--check) / aborted      3  interactive run with no terminal on stdin
 
 What gets updated: only the *.py scripts in the same directory as this file (your _meta/ or
 tooling/ copy). The template/ scaffold (your _knowledge/ contents) is NEVER touched — it's
@@ -83,12 +88,32 @@ SILENT_WARNING = """\
 ║  Proceeding in 8 seconds … Ctrl+C to abort.                                 ║
 ╚══════════════════════════════════════════════════════════════════════════════╝"""
 
+# ── argument handling ─────────────────────────────────────────────────────────
+
+KNOWN_FLAGS = {"--yes", "-y", "--check", "--dry-run", "-n", "--help", "-h"}
+USAGE = "usage: kb-update.py [--yes|-y] [--check|--dry-run|-n] [--help|-h]"
+NO_TTY = ("Error: interactive mode needs a terminal, but stdin is not a tty.\n"
+          "  Re-run with --yes to apply silently, or --check for a read-only dry-run.")
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main() -> int:
     args = sys.argv[1:]
+    unknown = [a for a in args if a not in KNOWN_FLAGS]
+    if unknown:
+        print(_colour(f"Error: unrecognised argument(s): {' '.join(unknown)}", "31"))
+        print(USAGE)
+        return 2
+    if "--help" in args or "-h" in args:
+        print(USAGE)
+        return 0
     silent  = "--yes" in args or "-y" in args
-    dry_run = "--check" in args
+    dry_run = "--check" in args or "--dry-run" in args or "-n" in args
+
+    # interactive mode needs a real terminal — refuse before cloning or touching anything
+    if not silent and not dry_run and not sys.stdin.isatty():
+        print(_colour(NO_TTY, "31"))
+        return 3
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     current_ver = _current_version(script_dir)
@@ -142,7 +167,8 @@ def main() -> int:
 
         if not changed and not new_files:
             print(_colour("✓ Already up to date.", "32"))
-            _write_version(script_dir, remote_ver)
+            if not dry_run:                       # --check is strictly read-only
+                _write_version(script_dir, remote_ver)
             return 0
 
         total = len(changed) + len(new_files)
@@ -177,7 +203,12 @@ def main() -> int:
                 continue
 
             while True:
-                choice = input("  Apply? [y]es / [n]o / [a]ll / [q]uit  > ").strip().lower()
+                try:
+                    choice = input("  Apply? [y]es / [n]o / [a]ll / [q]uit  > ").strip().lower()
+                except EOFError:
+                    print()
+                    print(_colour(NO_TTY, "31"))
+                    return 3          # stop here — pin stays at the previous version
                 if choice in ("y", "yes"):
                     shutil.copy2(remote, local)
                     print(_colour(f"  ✓ applied", "32"))
@@ -194,16 +225,24 @@ def main() -> int:
                     break
                 elif choice in ("q", "quit"):
                     print("Quit — no further files applied.")
-                    if applied:
+                    if applied == total and not dry_run:
                         _write_version(script_dir, remote_ver)
+                    else:
+                        print(f"  Applied {applied}/{total} — version pin left at {current_ver}.")
                     return 0
 
             print()
 
-        if applied:
-            _write_version(script_dir, remote_ver)
+        if applied == total:
+            if not dry_run:
+                _write_version(script_dir, remote_ver)
             print(_colour(f"Done. Applied {applied}/{total} script(s). "
                           f"Version: {current_ver} → {remote_ver}", "32"))
+        elif applied:
+            # partial apply — the pin would lie about what's on disk, so leave it alone
+            print(_colour(f"Done. Applied {applied}/{total} script(s); "
+                          f"{total - applied} skipped.", "33"))
+            print(f"  Version pin left at {current_ver} (re-run to finish updating).")
         else:
             print("No scripts applied.")
 

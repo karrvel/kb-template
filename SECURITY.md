@@ -11,8 +11,10 @@ findings. A few rules regardless of whether your vault is public or private:
   reference one.
 - **Treat `reference/` distillates carefully** — they concentrate the most sensitive knowledge.
 - **Scope git to the vault** when a workspace holds secrets or nested repos: `git init` at the root
-  with a whitelist `.gitignore` that tracks only `_knowledge/` (+ `CLAUDE.md`), excluding `_meta/`,
-  `repos/`, and heavy dirs. See [tooling/README.md](tooling/README.md).
+  with a whitelist `.gitignore` that tracks the vault, its wiring, and the generated agent-context
+  files — excluding `_meta/`, `repos/`, and heavy dirs.
+  [setup/workspace.gitignore](setup/workspace.gitignore) is the canonical list (don't restate it);
+  see also [tooling/README.md](tooling/README.md).
 
 ## What the tooling does (and doesn't) protect
 
@@ -30,3 +32,7 @@ findings. A few rules regardless of whether your vault is public or private:
 If you find a security issue in the kb-template tooling itself, please **open a GitHub Security
 Advisory** (the "Report a vulnerability" button on the Security tab) rather than a public issue.
 Include steps to reproduce and the impact. We'll respond as quickly as we can.
+
+If that button isn't available to you, don't stop there and don't post the details publicly: open a
+regular issue saying only that you have a security report and asking for a private channel — no
+exploit details, no reproduction steps — and we'll open one from our side.
