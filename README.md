@@ -11,42 +11,28 @@ across sessions the gotchas, decisions, and prod caveats that die with the conte
 
 </div>
 
-> [!WARNING]
-> Knowledge vaults built with this kit can describe internal systems and security findings.
-> Keep your vault in a **private repo** — see [SECURITY.md](SECURITY.md).
-
 ---
-
-## Contents
-
-- [Why](#why) · [How it works](#how-it-works) · [What's inside](#whats-inside)
-- [Quick start (humans)](#quick-start-humans) · [Browse in Obsidian](#browse-in-obsidian) · [For agents (initialization)](#for-agents--initialization)
-- [Maintenance loop](#maintenance-loop) · [Measured impact](#measured-impact) · [When to use it](#when-to-use-it)
 
 ## Why
 
-An AI coding agent forgets everything between sessions. The knowledge that hurts most to lose isn't in
-the code — it's **off-code tribal knowledge**: "this env var breaks with a trailing slash," "that
+An AI coding agent forgets everything between sessions. The knowledge that hurts most to lose isn't
+in the code — it's **off-code tribal knowledge**: "this env var breaks with a trailing slash," "that
 liveness check is cosmetic," "these rate limits were loosened on the box and aren't in git." `grep`
-can't recover it; re-reading the repo can't recover it. This kit compiles that knowledge, **once**,
-into a browsable markdown wiki that compounds across sessions.
+can't recover it. This kit compiles that knowledge, **once**, into a browsable markdown wiki that
+compounds across sessions.
 
-The design rests on a fact-checked research pass (`research/`) with one load-bearing conclusion:
-
-> [!TIP]
-> Build a **two-tier plain-markdown wiki**. Skip vector RAG until you outgrow **~150–200 pages /
-> ~50–100k tokens**. Below that ceiling, an index file + the context window retrieve more reliably
-> than embeddings — and stay diff-able, greppable, and human-editable.
+The research conclusion: **below ~150–200 pages / ~50–100k tokens, a plain-markdown index + context
+window retrieves more reliably than embeddings** — and stays diff-able, greppable, and human-editable.
+Skip vector RAG until you outgrow it.
 
 ## How it works
 
-Three layers (Karpathy) over two memory tiers (MemGPT): raw sources compile into atomic shards;
-`kb-sync.py` turns shard frontmatter into navigation plus a tiny always-loaded core and a
-browse-on-demand archive.
+Three layers (Karpathy) over two memory tiers (MemGPT):
 
 ```mermaid
 flowchart TB
     subgraph RAW["① RAW SOURCES"]
+        G["📜 Git commit history"]
         T["💬 Agent transcripts<br/>Claude Code + Codex"]
         R["📄 Reference docs<br/>PRDs, architecture"]
     end
@@ -54,19 +40,20 @@ flowchart TB
         S["📦 Atomic shards<br/>gotchas · decisions · security · tasks · repos"]
     end
     SCHEMA["📐 ③ SCHEMA<br/>README + CLAUDE.md"]
+    G --> S
     T --> S
     R --> S
     SCHEMA -. governs .-> S
-    S --> SYNC{{"⚙️ kb-sync.py — compile frontmatter"}}
-    SYNC --> CORE["🔴 CORE tier · always loaded<br/>MEMORY.md + CLAUDE.md LIVE blocks"]
-    SYNC --> NAV["🗄️ ARCHIVAL tier · on demand<br/>INDEX.md → open only what you need"]
+    S --> SYNC{{"⚙️ kb-sync.py"}}
+    SYNC --> CORE["🔴 CORE · always loaded<br/>MEMORY.md + CLAUDE.md LIVE blocks"]
+    SYNC --> NAV["🗄️ ARCHIVAL · on demand<br/>INDEX.md → open only what you need"]
     NAV -.-> S
     classDef raw fill:#E6E6FA,stroke:#333,stroke-width:1px,color:#222222
     classDef wiki fill:#90EE90,stroke:#333,stroke-width:1px,color:#0a3d0a
     classDef schema fill:#FFD700,stroke:#333,stroke-width:1px,color:#222222
     classDef core fill:#FFB6C1,stroke:#DC143C,stroke-width:1px,color:#222222
     classDef arch fill:#87CEEB,stroke:#333,stroke-width:1px,color:#0a2540
-    class T,R raw
+    class G,T,R raw
     class S wiki
     class SCHEMA,SYNC schema
     class CORE core
@@ -77,76 +64,47 @@ flowchart TB
 
 ```
 kb-template/
-├── research/     WHY  — the fact-checked rationale (portable to any project)
+├── research/     WHY  — the fact-checked rationale
 ├── template/     WHAT — the vault scaffold to copy into a project as _knowledge/
-├── tooling/      HOW  — the scripts + the pre-commit hook + the impact eval
-│   ├── prefilter.py   transcripts → digests      kb-sync.py     shards → navigation + memory
-│   ├── kb-lint.py     schema gate                kb-fix.py      Obsidian-safe frontmatter
-│   ├── kb-links.py    link-rot gate              kb-staleness.py  the re-verify queue
-│   ├── hooks/         pre-commit gate (+advisory)  kb-eval/     measure KB impact (A/B)
-├── HOWTO.md      the build playbook · AGENTS.md   for agents working inside the kit
-└── SECURITY.md   handling sensitive vaults  ·  LICENSE.md  proprietary license
+├── tooling/      HOW  — the scripts, pre-commit hook, and impact eval
+│   ├── prefilter.py    transcripts → digests     kb-sync.py      shards → navigation + memory
+│   ├── kb-lint.py      schema gate               kb-fix.py       Obsidian-safe frontmatter
+│   ├── kb-links.py     link-rot gate             kb-staleness.py re-verify queue
+│   ├── kb-update.py    pull new kit versions     kb-eval/        measure KB impact (A/B)
+│   └── hooks/          pre-commit gate
+├── HOWTO.md      the build playbook
+├── AGENTS.md     for agents working inside the kit
+└── SECURITY.md   handling sensitive vaults  ·  LICENSE.md  MIT license
 ```
 
-## Quick start (humans)
+The vault is plain markdown with `[[wikilinks]]` — open `_knowledge/` in **[Obsidian](https://obsidian.md)** for graph view, backlinks, and full-text search. No plugins required.
+
+## Quick start
 
 ```bash
-cp -R  kb-template/template        /path/to/project/_knowledge
-mkdir -p /path/to/project/_meta && cp kb-template/tooling/*.py /path/to/project/_meta/
+# 1. Copy the scaffold and scripts into your project
+cp -R  kb-template/template              /path/to/project/_knowledge
+mkdir -p /path/to/project/_meta
+cp     kb-template/tooling/*.py          /path/to/project/_meta/
+
+# 2. Fill in _knowledge/README.md (replace {PROJECT}/TODO) and _knowledge/architecture.md
+#    or delete architecture.md to start with an empty vault
+
+# 3. Add LIVE marker pairs to your project-root CLAUDE.md (see HOWTO §6)
+
+# 4. Generate navigation and run the quality gates
 cd /path/to/project
-# Fill in the scaffolds (replace {PROJECT}/TODO): _knowledge/architecture.md and _knowledge/README.md
-#   — or `rm _knowledge/architecture.md` to start with an empty vault. Then add the two LIVE markers
-#   to your CLAUDE.md (HOWTO §6). (Unfilled architecture.md only WARNS; unfilled shards ERROR.)
-python3 _meta/kb-sync.py && python3 _meta/kb-fix.py && python3 _meta/kb-lint.py && python3 _meta/kb-links.py
+python3 _meta/kb-sync.py && python3 _meta/kb-fix.py \
+  && python3 _meta/kb-lint.py && python3 _meta/kb-links.py
 ```
 
-Full method (distilling a brownfield codebase + transcripts): **[HOWTO.md](HOWTO.md)**.
+Full brownfield distillation method: **[HOWTO.md](HOWTO.md)**.
 
-## Browse in Obsidian
-
-The vault is plain markdown with `[[wikilinks]]`, so it's a first-class **[Obsidian](https://obsidian.md)**
-vault — as a human, just open the `_knowledge/` folder in Obsidian to read and navigate it. You get:
-
-- **🕸️ Graph view** — a visual map of how shards connect. Clusters reveal subsystems; stray dots are
-  orphaned or dead-linked shards (the same rot `kb-links` catches, but now you can *see* it).
-- **🔗 Backlinks & tags** — every shard that references the one you're reading, and filtering by the
-  `area` / `tags` frontmatter.
-- **🔎 Instant full-text search** across the whole vault.
-
-> [!NOTE]
-> No plugins required, and nothing about the format is Obsidian-specific — the same files stay
-> greppable, diff-able, and agent-readable outside it. Obsidian is just a nice lens for humans.
-
-## For agents — initialization
+## Agent initialization
 
 Give the prompt below to an agent (Claude Code / Codex) **inside the project you want to document**.
-It handles empty/fresh and brownfield projects, and — critically — **mines the project's own past
-agent-session history** to recover knowledge that would otherwise be lost.
-
-```mermaid
-flowchart TD
-    A(["🚀 Give agent the init prompt"]) --> B["📥 Clone kit · copy template/ + tooling/"]
-    B --> M["🕮 Mine THIS workspace's local<br/>Claude/Codex session history (prefilter.py)"]
-    M --> C{"🔍 Project type?"}
-    C -->|"empty / fresh"| D["🌱 Minimal skeleton<br/>architecture stub + planned components"]
-    C -->|"brownfield"| E["📚 Distill existing docs<br/>✓ verify against current code"]
-    D --> F["✍️ Write atomic shards<br/>full frontmatter · honest volatility · no secrets"]
-    E --> F
-    F --> G["⚙️ Loop: kb-sync → kb-fix → kb-lint → kb-links → kb-staleness"]
-    G --> H{"🔧 git repo?"}
-    H -->|yes| I["🪝 Enable pre-commit hook"]
-    H -->|no| J(["✅ Vault live"])
-    I --> J
-    classDef start fill:#90EE90,stroke:#333,color:#0a3d0a
-    classDef step fill:#87CEEB,stroke:#333,color:#0a2540
-    classDef mine fill:#FFD700,stroke:#333,color:#222222
-    classDef decision fill:#FFD700,stroke:#333,color:#222222
-    classDef done fill:#FFB6C1,stroke:#DC143C,color:#222222
-    class A,J start
-    class B,D,E,F,G,I step
-    class M mine
-    class C,H decision
-```
+It mines git history, past agent sessions, and existing docs — then writes atomic shards and wires
+the two memory tiers.
 
 <details>
 <summary><b>📋 Click to copy the agent initialization prompt</b></summary>
@@ -154,19 +112,19 @@ flowchart TD
 ````text
 Set up a durable, agent-maintained knowledge base in THIS project using the kb-template kit.
 
-1. Clone the kit and copy its parts in (use SSH if the repo is private):
-     git clone --depth 1 git@github.com:karrvel/kb-template.git /tmp/kb-template
+1. Clone the kit and copy its parts in:
+     git clone --depth 1 https://github.com/karrvel/kb-template.git /tmp/kb-template
      cp -R /tmp/kb-template/template ./_knowledge
      mkdir -p ./_meta && cp /tmp/kb-template/tooling/*.py ./_meta/
      mkdir -p ./.githooks && cp /tmp/kb-template/tooling/hooks/pre-commit ./.githooks/ \
        && chmod +x ./.githooks/pre-commit
 
-2. Read /tmp/kb-template/HOWTO.md and ./_knowledge/README.md — the method and the schema. Follow them.
+2. Read /tmp/kb-template/HOWTO.md and ./_knowledge/README.md — the method and the schema.
 
 3. Edit ./_knowledge/README.md: replace {PROJECT} and TODO with this project's name + date.
 
-4. Ensure a project-root CLAUDE.md exists with, at the top, "First action every session: read
-   _knowledge/INDEX.md", and these two marker pairs:
+4. Ensure a project-root CLAUDE.md exists with "First action every session: read
+   _knowledge/INDEX.md" at the top, and these two LIVE marker pairs:
      ### 🔴 LIVE — open security findings
      <!-- BEGIN:sync:live-security -->
      <!-- END:sync:live-security -->
@@ -174,84 +132,78 @@ Set up a durable, agent-maintained knowledge base in THIS project using the kb-t
      <!-- BEGIN:sync:open-work -->
      <!-- END:sync:open-work -->
 
-5. MINE THIS PROJECT'S OWN PAST AGENT SESSIONS — the single highest-value, project-specific source.
-   Locally saved chat history for THIS workspace usually holds gotchas, decisions, security findings,
-   and prod caveats that exist nowhere in the code:
-     • Claude Code: ~/.claude/projects/<this-cwd-with-each-slash-as-a-dash>/*.jsonl
-       (e.g. cwd /Users/me/app  →  ~/.claude/projects/-Users-me-app/)
+5. MINE GIT COMMIT HISTORY — free, fast, no LLM tokens, do this first:
+     git log --oneline | head -100
+     git log --format="%ad %h %s%n%b" --date=short --since="6 months ago"
+     git log --pretty=format: --name-only | sort | uniq -c | sort -rn | head -30
+   Look for: fix/bug/revert/workaround → gotcha shards. decision/choose/switch/instead of →
+   decision shards. Incident responses or large refactors → architecture/security shards.
+   Tag provenance as `provenance: git:<short-hash> <date>`.
+
+6. MINE PAST AGENT SESSIONS — highest-value source of off-code tribal knowledge:
+     • Claude Code: ~/.claude/projects/<this-cwd-with-slashes-as-dashes>/*.jsonl
      • Codex:       ~/.codex/sessions/
-   Distill them (strips ~95–98% tool-call noise, buckets by cwd):
+   Distill (strips ~95–98% tool-call noise):
      python3 ./_meta/prefilter.py --match <project-keyword> --out ./_kb-digests
-   Read the digests and turn the DURABLE findings into shards. Recency-weight (fully distill recent
-   sessions; skip old codebase-analysis runs already captured in docs). Log what you skip.
+   Recency-weight: fully distill recent sessions; skip old analysis runs already in docs. Log skips.
 
-6. Seed the rest from the code/docs:
-   • EMPTY / FRESH (little or no code yet): a MINIMAL skeleton — an architecture.md stub, one repos/
-     shard per planned component, decisions/ shards for choices already made. Grow it as the project
-     grows; don't invent detail that doesn't exist yet.
-   • BROWNFIELD (existing code): build the skeleton from existing docs (PRDs, READMEs, architecture)
-     into reference/ + repos/ shards, VERIFYING every claim against the current code and correcting
-     stale docs.
+7. SEED FROM CODE AND DOCS:
+   • EMPTY / FRESH: minimal skeleton — architecture.md stub, one repos/ shard per planned
+     component, decisions/ for choices already made. Don't invent detail that doesn't exist yet.
+   • BROWNFIELD: build skeleton from existing docs (PRDs, READMEs, architecture) into reference/
+     + repos/ shards. VERIFY every claim against current code; correct stale docs.
 
-7. Write ATOMIC shards (one fact each) with full frontmatter (see _SHARD_TEMPLATE.md): name, type,
-   title, area, tags, status, updated, volatility, provenance. Tag volatility honestly (durable |
-   decays-with-code | one-shot). Prefer 0 shards over noise. NEVER put secrets in the vault.
+8. Write ATOMIC shards (one fact each) with full frontmatter (see _SHARD_TEMPLATE.md): name,
+   type, title, area, tags, status, updated, volatility, provenance. Tag volatility honestly
+   (durable | decays-with-code | one-shot). Prefer 0 shards over noise. NEVER put secrets here.
 
-8. Generate navigation + the two memory tiers, then gate quality:
+9. Generate navigation + memory tiers, then gate quality:
      python3 ./_meta/kb-sync.py && python3 ./_meta/kb-fix.py \
        && python3 ./_meta/kb-lint.py && python3 ./_meta/kb-links.py && python3 ./_meta/kb-staleness.py
 
-9. If this project is a git repo, enable the pre-commit health gate:
-     git config core.hooksPath .githooks
+10. If this is a git repo, enable the pre-commit health gate:
+      git config core.hooksPath .githooks
 
-Report: shards created per collection, what you mined from past sessions, what you verified against
-code, and what you deliberately skipped. Keep the always-loaded core tiny (~30 items).
+Report: shards created per collection, what you mined from git history and sessions, what you
+verified against code, and what you deliberately skipped. Keep the always-loaded core tiny (~30 items).
 ````
 
 </details>
 
-See [AGENTS.md](AGENTS.md) for agents landing *inside this kit*.
+See [AGENTS.md](AGENTS.md) for agents landing *inside this kit repo*.
 
-## Maintenance loop
+## Maintenance
 
-After editing shards, run — in order:
+After editing shards, run in order:
 
 ```bash
-kb-sync   →   kb-fix   →   kb-lint   →   kb-links   →   kb-staleness
+python3 _meta/kb-sync.py && python3 _meta/kb-fix.py \
+  && python3 _meta/kb-lint.py && python3 _meta/kb-links.py && python3 _meta/kb-staleness.py
 ```
 
-> [!NOTE]
-> Put `kb-fix` + `kb-lint` + `kb-links` in a **pre-commit hook** (`tooling/hooks/pre-commit`); put
-> `kb-staleness` on a **pre-session / weekly** nudge. Re-verifying `decays-with-code` shards is the
-> discipline everyone skips — automate it, don't rely on willpower. See [tooling/README.md](tooling/README.md).
+The pre-commit hook runs `kb-fix → kb-lint → kb-links → kb-sync --check` automatically on staged
+`_knowledge/` files. Put `kb-staleness` on a pre-session or weekly nudge — re-verifying
+`decays-with-code` shards is the discipline everyone skips.
 
 ## Updating the kit
 
-When a new version ships, pull in the updated scripts with the bundled updater:
+When a new version ships, run the bundled updater from your `_meta/` directory:
 
 ```bash
-# interactive (recommended) — shows a diff for each script, prompts before applying
-python3 _meta/kb-update.py
-
-# silent — overwrites immediately; prints a warning and a countdown first
-python3 _meta/kb-update.py --yes
-
-# dry-run — show what would change, exit 1 if updates exist (useful in CI)
-python3 _meta/kb-update.py --check
+python3 _meta/kb-update.py          # interactive — diff per script, prompt before each
+python3 _meta/kb-update.py --yes    # silent — 8-second countdown + warning, then overwrites
+python3 _meta/kb-update.py --check  # dry-run — show changes, exit 1 if updates exist
 ```
 
-Only the `*.py` scripts in your `_meta/` directory are updated. Your `_knowledge/` vault is never
-touched — it belongs to your project, not the kit.
+Only `*.py` scripts in `_meta/` are updated. Your `_knowledge/` vault is never touched.
 
 > [!WARNING]
-> Silent mode (`--yes`) skips the diff review. Run the interactive mode at least once on a new
-> version before using `--yes` in automation — script changes can affect how secrets and paths
-> are handled.
+> Silent mode skips the diff review. Run interactive at least once on a new version before using
+> `--yes` in automation — script changes can affect how secrets and paths are handled.
 
 ## Measured impact
 
-The kit's value was measured, not asserted — a controlled A/B (same agent *with* the vault vs
-*without*, same questions), with blinded LLM grading of whether each answer surfaced the documented fact:
+Controlled A/B (same agent with vs without the vault, blinded LLM grading):
 
 | Question type | n | with KB | without KB | Δ |
 |---|--:|--:|--:|--:|
@@ -261,25 +213,24 @@ The kit's value was measured, not asserted — a controlled A/B (same agent *wit
 | synthesis / summary | 1 | 100% | 0% | +100 |
 | abstention (no hallucination) | 1 | 100% | 100% | +0 ✓ |
 
-> **Small sample, honest caveat.** 16 known-trap questions across one operator's three real (private)
-> codebases, single judge model — *directional* evidence, not a public benchmark. The wins concentrate
-> exactly where a KB should help (project-specific, off-code, multi-hop knowledge) with no
-> hallucination penalty.
+> **Honest caveat.** 16 questions across one operator's three real codebases, single judge model —
+> directional evidence, not a public benchmark. The wins concentrate exactly where a KB should help
+> (project-specific, off-code, multi-hop knowledge) with no hallucination penalty.
 
-Scrubbed breakdown + a sample trap: [`tooling/kb-eval/sample-report.md`](tooling/kb-eval/sample-report.md).
-Reproduce it on your own vault: [`tooling/kb-eval/`](tooling/kb-eval/).
+Scrubbed breakdown + a sample trap: [`tooling/kb-eval/sample-report.md`](tooling/kb-eval/sample-report.md). Reproduce on your own vault: [`tooling/kb-eval/`](tooling/kb-eval/).
 
 ## When to use it
 
-> [!WARNING]
-> This is the right tool for a **single-curator vault under ~150–200 pages / ~50–100k tokens**. Above
-> that — or for multi-tenant, heavily time-varying corpora needing fuzzy semantic recall — keep the
-> wiki as the human-legible source of truth but add vector (GraphRAG/RAPTOR) or temporal-graph
-> retrieval *on top*. Don't reach for a vector DB below the ceiling; it's curation tax.
+Single-curator vault under **~150–200 pages / ~50–100k tokens** → this is the right tool.
+
+Above that ceiling, or for multi-tenant / heavily time-varying corpora needing fuzzy semantic
+recall: keep the wiki as the human-legible source of truth and add vector (GraphRAG/RAPTOR) or
+temporal-graph retrieval *on top*. Don't reach for a vector DB below the ceiling; it's curation tax.
 
 ## License & security
 
 MIT — © 2026 karrvel. See **[LICENSE.md](LICENSE.md)**.
-Keep real vaults in **private** repos, never commit secrets, and treat distillates carefully —
-handling rules are in **[SECURITY.md](SECURITY.md)**. The impact eval keeps secret-bearing traps in a
+
+Keep real vaults in **private** repos, never commit secrets, and treat distillates carefully.
+Full handling rules: **[SECURITY.md](SECURITY.md)**. The impact eval keeps secret-bearing traps in a
 git-ignored `traps.local.jsonl`; only a redacted example ships.

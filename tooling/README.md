@@ -118,3 +118,17 @@ python3 kb-staleness.py --age-only               # skip the anchor check
 ```
 Env: `KB_ROOT`, `KB_VAULT`, `KB_REPOS`, `KB_STALE_DAYS`, `KB_TODAY`. A project with a GitHub-PR
 convention can layer a `gh pr view` drift check on top in its own `_meta/`.
+
+## kb-update.py — pull new kit versions
+
+Updates the `*.py` scripts in `_meta/` to the latest version from the public repo. Never touches
+`_knowledge/`. Writes a `kb.version` pin file after each successful update.
+
+```bash
+python3 kb-update.py          # interactive — colored diff per file, [y]es/[n]o/[a]ll/[q]uit
+python3 kb-update.py --yes    # silent — prints warning + 8-second countdown, then overwrites
+python3 kb-update.py --check  # dry-run — show what would change, exit 1 if updates exist
+```
+
+> **Silent mode warning.** New scripts can change how secrets and paths are handled. Run
+> interactive at least once on a new version before using `--yes` in automation.

@@ -11,19 +11,32 @@ the wiki, but plan to add vector or graph retrieval *on top* later. See
 
 ## 1. Scaffold the vault
 ```bash
-cp -R ~/Projects/kb-template/template  /path/to/project/_knowledge
-cp ~/Projects/kb-template/tooling/*.py /path/to/project/_meta/   # or ./tooling
+git clone --depth 1 https://github.com/karrvel/kb-template.git /tmp/kb-template
+cp -R /tmp/kb-template/template        /path/to/project/_knowledge
+mkdir -p /path/to/project/_meta
+cp     /tmp/kb-template/tooling/*.py   /path/to/project/_meta/
 ```
 Edit `_knowledge/README.md`: replace `{PROJECT}` and `TODO`. Add the two LIVE sync-block markers to
 your project-root `CLAUDE.md` (see step 6).
 
 ## 2. Gather the raw sources (Karpathy layer 1)
-Two kinds, both high-value:
-- **Already-distilled docs** — PRDs, architecture docs, prior codebase analyses, per-component
-  distillates. Copy them into `_knowledge/reference/`. **These are your skeleton backbone** — far
-  higher signal-per-token than raw transcripts. Build the skeleton from these first.
+Three kinds, in priority order:
+
+- **Git commit history — do this first.** Free, instant, zero LLM tokens. `fix`/`bug`/`revert`/
+  `workaround` in commit subjects → gotcha candidates. `decision`/`choose`/`switch`/`instead of` →
+  decision candidates. Large incident-response or refactor commits → architecture/security candidates.
+  ```bash
+  git log --oneline | head -100
+  git log --format="%ad %h %s%n%b" --date=short --since="6 months ago"
+  git log --pretty=format: --name-only | sort | uniq -c | sort -rn | head -30
+  ```
+
+- **Already-distilled docs** — PRDs, architecture docs, prior codebase analyses. Copy into
+  `_knowledge/reference/`. **These are the skeleton backbone** — far higher signal-per-token than raw
+  transcripts. Build the skeleton from these before mining transcripts.
+
 - **Agent transcripts** — Codex (`~/.codex/sessions`) + Claude Code (`~/.claude/projects`). These
-  *fill gaps* (gotchas, decisions, security findings, remaining work) the docs don't have.
+  *fill gaps* (gotchas, decisions, security findings, remaining work) the docs and git history don't have.
 
 ## 3. Pre-filter the transcripts (cheap, no LLM tokens)
 ```bash
@@ -67,13 +80,12 @@ python3 _meta/kb-sync.py     # generates MOCs + INDEX.md + MEMORY.md + fills the
 
 ### Install the hook (required once per clone)
 ```bash
-# 1. Copy the hook into your project's .githooks/ dir:
-cp ~/Projects/kb-template/repos/kb-template/tooling/hooks/pre-commit /path/to/project/.githooks/pre-commit
+mkdir -p /path/to/project/.githooks
+cp /tmp/kb-template/tooling/hooks/pre-commit /path/to/project/.githooks/pre-commit
 chmod +x /path/to/project/.githooks/pre-commit
-# 2. Tell git to use that dir (required once per clone):
-git config core.hooksPath .githooks
+git -C /path/to/project config core.hooksPath .githooks
 ```
-The hook runs kb-fix → kb-lint → kb-links → kb-sync --check whenever `_knowledge/*.md` files are staged. There is no `init.sh` in the kit; run the two commands above manually after each clone.
+The hook runs kb-fix → kb-lint → kb-links → kb-sync --check whenever `_knowledge/*.md` files are staged. Run the two commands above manually after each fresh clone — there is no install script.
 
 ### Multi-platform support {#multi-platform}
 
@@ -124,6 +136,20 @@ that backlog visible; wire it into a pre-session or weekly nudge, and `kb-fix` +
 **Browse it as a database:** the scaffold ships `knowledge-map.base` — open the vault in Obsidian
 (1.7+) for filtered table views per `type`. It's purely additive: Obsidian users get the view layer,
 everyone else ignores one file, and the plain-markdown core stays greppable/diff-able.
+
+## 8. Update the kit scripts
+
+When a new version of kb-template ships, pull updated scripts into `_meta/` without re-scaffolding:
+
+```bash
+python3 _meta/kb-update.py          # interactive — shows diff, prompts before each file
+python3 _meta/kb-update.py --yes    # silent — 8-second countdown + warning, then overwrites
+python3 _meta/kb-update.py --check  # dry-run — shows what would change, exit 1 if updates exist
+```
+
+Your `_knowledge/` vault is never touched. A `kb.version` file is written to `_meta/` after each
+update so the script knows your current pin. See the [README](README.md#updating-the-kit) for the
+silent-mode warning.
 
 ## Drift smells to avoid (harvested from 5 real vaults)
 - **Never hand-write counts or totals** in INDEX/CLAUDE.md — `kb-sync.py` owns them. Hand-written
