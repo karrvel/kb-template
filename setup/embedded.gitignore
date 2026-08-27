@@ -1,0 +1,29 @@
+# Embedded-model additions — add these lines to your project's existing .gitignore.
+# The vault (_knowledge/) is tracked by your project's git like any other directory.
+# Only the kb-template scripts and local tooling files are excluded.
+#
+# Layout this creates:
+#   ~/Projects/my-project/
+#   ├── _knowledge/    ← tracked alongside your source code
+#   ├── _meta/         ← untracked (kit scripts — disposable copy)
+#   ├── src/           ← your code (tracked as normal)
+#   └── CLAUDE.md      ← tracked
+
+# kb-template tooling — disposable local copy, never publish
+_meta/
+
+# kb-update version pin — local to this machine
+_meta/kb.version
+
+# PII denylist — machine-specific, never commit
+.pii-denylist.local
+
+# Digest output from prefilter.py — large, never commit
+_kb-digests/
+
+# kb-eval results — may contain sensitive trap data
+_knowledge/../tooling/kb-eval/results/
+
+# macOS
+.DS_Store
+**/.DS_Store

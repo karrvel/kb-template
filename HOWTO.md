@@ -10,11 +10,27 @@ the wiki, but plan to add vector or graph retrieval *on top* later. See
 `research/plain-markdown-vs-vector-rag.md`.
 
 ## 1. Scaffold the vault
+
+First, choose your setup model (see the [README](README.md#choose-your-setup) for the full comparison):
+
+- **Option A — Workspace**: a standalone wrapper directory whose git tracks only `_knowledge/`.
+  Best for multiple related repos. Copy `setup/workspace.gitignore` → root `.gitignore`.
+- **Option B — Embedded**: vault lives inside an existing project repo, tracked alongside source.
+  Best for a single project. Append `setup/embedded.gitignore` → existing `.gitignore`.
+
+Then scaffold:
 ```bash
 git clone --depth 1 https://github.com/karrvel/kb-template.git /tmp/kb-template
-cp -R /tmp/kb-template/template        /path/to/project/_knowledge
-mkdir -p /path/to/project/_meta
-cp     /tmp/kb-template/tooling/*.py   /path/to/project/_meta/
+
+# copy vault scaffold
+cp -R /tmp/kb-template/template        <your-root>/_knowledge
+mkdir -p <your-root>/_meta
+cp     /tmp/kb-template/tooling/*.py   <your-root>/_meta/
+
+# copy gitignore for your chosen option (A or B)
+cp /tmp/kb-template/setup/workspace.gitignore <your-root>/.gitignore   # Option A
+# — OR —
+cat /tmp/kb-template/setup/embedded.gitignore >> <your-root>/.gitignore  # Option B
 ```
 Edit `_knowledge/README.md`: replace `{PROJECT}` and `TODO`. Add the two LIVE sync-block markers to
 your project-root `CLAUDE.md` (see step 6).

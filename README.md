@@ -64,8 +64,9 @@ flowchart TB
 
 ```
 kb-template/
+├── setup/        starter .gitignore files for each setup option (see below)
 ├── research/     WHY  — the fact-checked rationale
-├── template/     WHAT — the vault scaffold to copy into a project as _knowledge/
+├── template/     WHAT — the vault scaffold (copy this into your project as _knowledge/)
 ├── tooling/      HOW  — the scripts, pre-commit hook, and impact eval
 │   ├── prefilter.py    transcripts → digests     kb-sync.py      shards → navigation + memory
 │   ├── kb-lint.py      schema gate               kb-fix.py       Obsidian-safe frontmatter
@@ -79,32 +80,94 @@ kb-template/
 
 The vault is plain markdown with `[[wikilinks]]` — open `_knowledge/` in **[Obsidian](https://obsidian.md)** for graph view, backlinks, and full-text search. No plugins required.
 
+---
+
+## Choose your setup
+
+Two ways to use this kit. Pick one before running the quick start.
+
+### Option A — Workspace (one KB for multiple projects)
+
+A standalone wrapper directory whose git tracks **only** the vault. Your actual projects live under
+`repos/` as their own self-contained git repos.
+
+```
+~/my-workspace/
+├── _knowledge/        ← git tracks only this (the vault)
+├── _meta/             ← kit scripts, untracked (disposable copy)
+├── repos/
+│   ├── project-one/   ← its own git repo
+│   └── project-two/   ← its own git repo
+├── CLAUDE.md          ← tracked
+└── .githooks/         ← tracked (pre-commit gate)
+```
+
+**When to use:** you work across several related repos and want one shared KB for all of them. This
+is the recommended setup for a team workspace or a mono-developer who juggles multiple services.
+
+```bash
+mkdir ~/my-workspace && cd ~/my-workspace
+git init
+cp /tmp/kb-template/setup/workspace.gitignore .gitignore
+```
+
+### Option B — Embedded (KB lives inside an existing project)
+
+The vault lives alongside your project's source code, tracked by the project's own git. No wrapper
+directory needed — just drop it in.
+
+```
+~/Projects/my-project/
+├── _knowledge/        ← tracked by the project's own git
+├── _meta/             ← kit scripts, gitignored
+├── src/               ← your code (tracked as normal)
+└── CLAUDE.md          ← tracked
+```
+
+**When to use:** you have a single project with its own repo and want the KB to travel with it,
+visible to all contributors, versioned in the same history.
+
+```bash
+cd ~/Projects/my-project   # your existing project repo
+# append the embedded exclusions to your existing .gitignore:
+cat /tmp/kb-template/setup/embedded.gitignore >> .gitignore
+```
+
+---
+
 ## Quick start
 
 ```bash
-# 1. Copy the scaffold and scripts into your project
-cp -R  kb-template/template              /path/to/project/_knowledge
-mkdir -p /path/to/project/_meta
-cp     kb-template/tooling/*.py          /path/to/project/_meta/
+# 0. Clone the kit (once)
+git clone --depth 1 https://github.com/karrvel/kb-template.git /tmp/kb-template
 
-# 2. Fill in _knowledge/README.md (replace {PROJECT}/TODO) and _knowledge/architecture.md
-#    or delete architecture.md to start with an empty vault
+# 1. Copy the vault scaffold
+cp -R /tmp/kb-template/template  <your-root>/_knowledge
 
-# 3. Add LIVE marker pairs to your project-root CLAUDE.md (see HOWTO §6)
+# 2. Copy the scripts
+mkdir -p <your-root>/_meta && cp /tmp/kb-template/tooling/*.py <your-root>/_meta/
 
-# 4. Generate navigation and run the quality gates
-cd /path/to/project
+# 3. Install the pre-commit hook
+mkdir -p <your-root>/.githooks
+cp /tmp/kb-template/tooling/hooks/pre-commit <your-root>/.githooks/
+chmod +x <your-root>/.githooks/pre-commit
+git -C <your-root> config core.hooksPath .githooks
+
+# 4. Fill in _knowledge/README.md (replace {PROJECT}/TODO), then generate navigation
+cd <your-root>
 python3 _meta/kb-sync.py && python3 _meta/kb-fix.py \
   && python3 _meta/kb-lint.py && python3 _meta/kb-links.py
 ```
 
-Full brownfield distillation method: **[HOWTO.md](HOWTO.md)**.
+Full brownfield distillation method (mine git history, transcripts, existing docs): **[HOWTO.md](HOWTO.md)**.
+
+---
 
 ## Agent initialization
 
-Give the prompt below to an agent (Claude Code / Codex) **inside the project you want to document**.
-It mines git history, past agent sessions, and existing docs — then writes atomic shards and wires
-the two memory tiers.
+Give the prompt below to an agent (Claude Code / Codex) **inside the workspace or project you want
+to document**. It mines git history, past agent sessions, and existing docs — then writes atomic
+shards and wires the two memory tiers.
 
 <details>
 <summary><b>📋 Click to copy the agent initialization prompt</b></summary>
@@ -118,6 +181,10 @@ Set up a durable, agent-maintained knowledge base in THIS project using the kb-t
      mkdir -p ./_meta && cp /tmp/kb-template/tooling/*.py ./_meta/
      mkdir -p ./.githooks && cp /tmp/kb-template/tooling/hooks/pre-commit ./.githooks/ \
        && chmod +x ./.githooks/pre-commit
+
+   SETUP OPTION — pick one based on this project's layout:
+   • Workspace (multiple repos under one root): cp /tmp/kb-template/setup/workspace.gitignore .gitignore
+   • Embedded (KB inside an existing project):  cat /tmp/kb-template/setup/embedded.gitignore >> .gitignore
 
 2. Read /tmp/kb-template/HOWTO.md and ./_knowledge/README.md — the method and the schema.
 
@@ -172,6 +239,8 @@ verified against code, and what you deliberately skipped. Keep the always-loaded
 
 See [AGENTS.md](AGENTS.md) for agents landing *inside this kit repo*.
 
+---
+
 ## Maintenance
 
 After editing shards, run in order:
@@ -200,6 +269,8 @@ Only `*.py` scripts in `_meta/` are updated. Your `_knowledge/` vault is never t
 > [!WARNING]
 > Silent mode skips the diff review. Run interactive at least once on a new version before using
 > `--yes` in automation — script changes can affect how secrets and paths are handled.
+
+---
 
 ## Measured impact
 

@@ -1,0 +1,24 @@
+# Workspace-model .gitignore — track ONLY the vault + its wiring.
+# Everything else (repos/, _meta/, sessions/, worktrees/, heavy dirs) stays untracked.
+# Copy this file to your workspace root as .gitignore after `git init`.
+#
+# Layout this creates:
+#   ~/my-workspace/
+#   ├── _knowledge/    ← tracked (the vault)
+#   ├── _meta/         ← untracked (kit scripts — disposable copy)
+#   ├── repos/         ← untracked (your actual projects, each their own git)
+#   ├── CLAUDE.md      ← tracked
+#   └── .githooks/     ← tracked (the pre-commit gate)
+
+/*
+!/.gitignore
+!/.githooks/
+!/_knowledge/
+!/CLAUDE.md
+
+# Obsidian UI state — never commit
+_knowledge/.obsidian/
+
+# macOS
+.DS_Store
+**/.DS_Store
