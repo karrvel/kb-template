@@ -19,6 +19,10 @@ falsifiable claims, 3-vote adversarial verification, 21 sources). This is the *w
 6. [[claims-verified]] — the raw verified-claim corpus (audit trail) + the 7 refuted claims.
 7. [[sources]] — every source, primaries first.
 
+Companion page (added 2026-08-27), on the *other* half of the problem — in-session context rather than durable memory:
+
+8. [[agent-context-management]] — offload-plus-pointer, usage-anchored token accounting, cache hygiene on auxiliary calls, pluggable summarization, and a compaction-budget arithmetic trap that silently disables compaction on small-context models.
+
 ## The takeaway in three lines
 - **Build:** a two-tier, plain-markdown, git-versioned, agent-maintained wiki (Karpathy + MemGPT).
 - **Skip:** vector/graph/spatial RAG until you exceed ~150–200 pages / ~50–100k tokens.

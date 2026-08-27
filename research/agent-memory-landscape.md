@@ -39,6 +39,19 @@ The research found two independent bodies of work that point at the *same* desig
 This template fuses them: Karpathy's wiki *is* the archival tier; a small `MEMORY.md` (+ hierarchical
 `CLAUDE.md` blocks) *is* the core tier; the schema doc is layer 3.
 
+**A third arrival (added 2026-08-27).** [TencentDB Agent Memory](https://github.com/TencentCloud/TencentDB-Agent-Memory)
+(MIT, v2.0.1) credits Karpathy's gist directly, by name, as the inspiration for its Wiki layer — and
+independently reproduces the tiered model as a four-level pyramid (L0 Conversation → L1 Atom →
+L2 Scenario → L3 Persona) under an explicit rule, *"lower layers preserve evidence; upper layers
+preserve structure"*, which is the compiled/raw split in different words. Different scale (team
+server, SQLite + sqlite-vec or a hosted vector DB), same design. Convergence from a third direction
+is the strongest evidence this corpus has that the shape is right.
+
+It also **omits** decay and staleness handling entirely — consolidation distils upward, but
+`capture.l0l1RetentionDays: 0` ("never clean up") is the shipped default. That is the gap flagged
+under "hedges" below and the reason `tooling/` exists. See [[agent-context-management]] for that
+analysis and for the in-session half of the problem.
+
 ## Why plain markdown beats reaching for vectors (at this scale)
 - **A scale ceiling exists and is concrete.** Multiple practitioners put the plain-file sweet spot
   at **~50k–100k tokens / ~150–200 pages**; below it, file-reading is "simpler, more reliable, and
