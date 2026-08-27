@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
+# © 2026 karrvel — MIT License. See LICENSE.md.
 """kb-fix.py — make shard frontmatter Obsidian-safe (repair, not just report).
 
 Obsidian's Properties parser is strict YAML. It throws "invalid frontmatter" and refuses to render

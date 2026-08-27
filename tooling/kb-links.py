@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
+# © 2026 karrvel — MIT License. See LICENSE.md.
 """kb-links.py — link-rot checker for the vault (the non-LLM doc-health signal the research flagged
 as highest-ROI for a plain-markdown KB, yet with no off-the-shelf tool).
 

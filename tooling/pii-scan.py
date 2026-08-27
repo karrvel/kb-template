@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# © 2026 karrvel — proprietary. No use or distribution without consent; see LICENSE.md.
+# © 2026 karrvel — MIT License. See LICENSE.md.
 """pii-scan.py — mechanical PII / private-context guard for a repo that goes PUBLIC.
 
 Codified, not inferred: a fixed list of regexes. Exits non-zero (blocks) on any match, so it can

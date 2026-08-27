@@ -1,38 +1,21 @@
-# Proprietary License
+# MIT License
 
-**Copyright © 2026 karrvel. All rights reserved.**
+Copyright (c) 2026 karrvel
 
-This repository — `kb-template` — and all of its contents (source code, scripts, documentation,
-research, templates, and any accompanying materials, collectively the "Work") are **proprietary and
-confidential**. The Work is the original, proprietary work of the author (karrvel, "the Author").
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## No license granted
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-No license, right, or permission of any kind is granted, whether by implication, estoppel, or
-otherwise, except as expressly stated in a separate written agreement signed by the Author.
-
-Without the Author's **prior written consent**, you may **not**:
-
-- use, run, or execute the Work, in whole or in part;
-- copy, reproduce, or store the Work;
-- modify, adapt, translate, or create derivative works from the Work;
-- distribute, publish, sublicense, sell, lease, or otherwise transfer the Work or access to it;
-- disclose, share, or make the Work available to any third party.
-
-## Confidentiality
-
-The Work — including any knowledge-base content produced with it — may describe internal systems,
-security findings, and other sensitive information. Treat the Work and anything derived from it as
-**confidential**. Do not redistribute or expose it publicly.
-
-## No warranty
-
-The Work is provided "AS IS", without warranty of any kind, express or implied, including but not
-limited to the warranties of merchantability, fitness for a particular purpose, and
-non-infringement. In no event shall the Author be liable for any claim, damages, or other liability
-arising from, out of, or in connection with the Work or its use.
-
-## Contact
-
-For permission requests or licensing inquiries, contact the Author (karrvel) directly. Any use
-without such consent is unauthorized.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

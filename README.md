@@ -11,10 +11,9 @@ across sessions the gotchas, decisions, and prod caveats that die with the conte
 
 </div>
 
-> [!IMPORTANT]
-> **Proprietary & confidential.** © 2026 karrvel. No use, copying, or distribution without the
-> author's written consent — see [LICENSE.md](LICENSE.md). Knowledge vaults built with this kit can
-> describe internal systems and security findings; keep them private.
+> [!WARNING]
+> Knowledge vaults built with this kit can describe internal systems and security findings.
+> Keep your vault in a **private repo** — see [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -255,9 +254,9 @@ Reproduce it on your own vault: [`tooling/kb-eval/`](tooling/kb-eval/).
 > wiki as the human-legible source of truth but add vector (GraphRAG/RAPTOR) or temporal-graph
 > retrieval *on top*. Don't reach for a vector DB below the ceiling; it's curation tax.
 
-## Privacy & license
+## License & security
 
-Proprietary and confidential — © 2026 karrvel, all rights reserved. See **[LICENSE.md](LICENSE.md)**.
-Keep real vaults in **private** repos, never commit secrets, and treat distillates as confidential —
+MIT — © 2026 karrvel. See **[LICENSE.md](LICENSE.md)**.
+Keep real vaults in **private** repos, never commit secrets, and treat distillates carefully —
 handling rules are in **[SECURITY.md](SECURITY.md)**. The impact eval keeps secret-bearing traps in a
 git-ignored `traps.local.jsonl`; only a redacted example ships.
