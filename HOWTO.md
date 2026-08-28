@@ -21,7 +21,7 @@ First, choose your setup model (see the [README](README.md#choose-your-setup) fo
 Then scaffold:
 ```bash
 # clone into a fresh dir — never a fixed /tmp path, a stale clone silently installs a stale kit
-KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT"
+KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/agent-kb.git "$KIT"
 
 # copy vault scaffold
 cp -R "$KIT/template" <your-root>/_knowledge
@@ -224,7 +224,7 @@ everyone else ignores one file, and the plain-markdown core stays greppable/diff
 
 ## 8. Update the kit scripts
 
-When a new version of kb-template ships, pull updated scripts into `_meta/` without re-scaffolding:
+When a new version of agent-kb ships, pull updated scripts into `_meta/` without re-scaffolding:
 
 ```bash
 python3 _meta/kb-update.py          # interactive — shows diff, prompts before each file

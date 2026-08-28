@@ -29,7 +29,7 @@ findings. A few rules regardless of whether your vault is public or private:
 
 ## Reporting a vulnerability in this kit
 
-If you find a security issue in the kb-template tooling itself, please **open a GitHub Security
+If you find a security issue in the agent-kb tooling itself, please **open a GitHub Security
 Advisory** (the "Report a vulnerability" button on the Security tab) rather than a public issue.
 Include steps to reproduce and the impact. We'll respond as quickly as we can.
 

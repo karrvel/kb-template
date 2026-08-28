@@ -266,7 +266,7 @@ def check_orphans():
 def sync_claude_md(sec, tsk):
     path = os.path.join(ROOT, "CLAUDE.md")
     if not os.path.exists(path):
-        print(f"  ⚠️  no CLAUDE.md at {ROOT} — LIVE blocks not wired.\n      Add the two marker pairs — see https://github.com/karrvel/kb-template#quick-start")
+        print(f"  ⚠️  no CLAUDE.md at {ROOT} — LIVE blocks not wired.\n      Add the two marker pairs — see https://github.com/karrvel/agent-kb#quick-start")
         return
     txt = open(path, errors="ignore").read()
     def t(i): return (i.get("live_summary") or i.get("title", i["name"])).strip().strip('"')
@@ -280,7 +280,7 @@ def sync_claude_md(sec, tsk):
         pat = re.compile(re.escape(b) + r".*?" + re.escape(e), re.S)
         if pat.search(txt): txt = pat.sub(f"{b}\n{content}\n{e}", txt); hit += 1
     if hit: open(path, "w").write(txt); print(f"  ✓ CLAUDE.md ({hit} LIVE blocks synced)")
-    else: print("  ⚠️  CLAUDE.md has no <!-- BEGIN:sync:* --> markers — LIVE blocks NOT synced.\n      Add them — see https://github.com/karrvel/kb-template#quick-start")
+    else: print("  ⚠️  CLAUDE.md has no <!-- BEGIN:sync:* --> markers — LIVE blocks NOT synced.\n      Add them — see https://github.com/karrvel/agent-kb#quick-start")
 
 if __name__ == "__main__":
     # Startup integrity check: if MEMORY.md already exists and references this script or INDEX.md,

@@ -28,7 +28,7 @@ check the `CLAUDE.md` LIVE blocks. It also emits a non-blocking nudge when paths
 (one-time, per clone); always clone into a fresh dir, never a fixed `/tmp` path, or a stale clone
 silently installs a stale kit:
 ```bash
-KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT"
+KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/agent-kb.git "$KIT"
 mkdir -p /path/to/project/_meta
 cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh /path/to/project/_meta/
 mkdir -p /path/to/project/.githooks
@@ -76,7 +76,7 @@ for a non-standard dialect, or `KB_SKIP_LINT=1` for a vault that predates this f
 the workspace root, then drop in the ready whitelist — it tracks the vault, its wiring, and the
 generated agent-context files, and nothing else:
 ```bash
-cp kb-template/setup/workspace.gitignore /path/to/workspace/.gitignore
+cp "$KIT"/setup/workspace.gitignore /path/to/workspace/.gitignore
 ```
 [`setup/workspace.gitignore`](../setup/workspace.gitignore) is the canonical list — it isn't
 restated here so the two can't drift. This keeps `_meta/` (secret backups), `repos/` (nested repos),

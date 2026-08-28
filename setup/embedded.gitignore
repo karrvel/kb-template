@@ -3,7 +3,7 @@
 # (This file starts with a blank line on purpose, so `cat embedded.gitignore >>
 # .gitignore` can never fuse onto an existing last rule that lacks a newline.)
 # The vault (_knowledge/) is tracked by your project's git like any other directory.
-# Only the kb-template scripts and local tooling files are excluded.
+# Only the agent-kb scripts and local tooling files are excluded.
 #
 # Layout this creates:
 #   ~/Projects/my-project/
@@ -13,7 +13,7 @@
 #   ├── .cursor/rules/ ← tracked (kb-sync output)
 #   └── CLAUDE.md      ← tracked
 
-# kb-template tooling — disposable local copy, never publish
+# agent-kb tooling — disposable local copy, never publish
 _meta/
 
 # PII denylist — machine-specific, never commit

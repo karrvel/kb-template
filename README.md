@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 kb-template
+# 🧠 agent-kb
 
 **Give any project a durable, agent-maintained knowledge base.**
 
@@ -8,7 +8,7 @@ Plain markdown · git-versioned · two-tier memory — the thing that lets an AI
 *remember* the gotchas, decisions, and prod caveats that die with the context window.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
-[![Release](https://img.shields.io/github/v/release/karrvel/kb-template?color=success)](https://github.com/karrvel/kb-template/releases/latest)
+[![Release](https://img.shields.io/github/v/release/karrvel/agent-kb?color=success)](https://github.com/karrvel/agent-kb/releases/latest)
 [![Python 3](https://img.shields.io/badge/python-3.9%2B-3776AB.svg)](https://www.python.org/)
 [![Dependencies: none](https://img.shields.io/badge/dependencies-none-success.svg)](#whats-inside)
 
@@ -131,7 +131,7 @@ Both assume you cloned the kit into `$KIT` (step 0 of [Quick start](#quick-start
 > a teammate who clones gets **no tooling and no gate** — and an ungated commit can land an invalid
 > shard that blocks everyone else. Each contributor runs this once:
 > ```bash
-> KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT" \
+> KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/agent-kb.git "$KIT" \
 >   && mkdir -p _meta && cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh _meta/ \
 >   && git config core.hooksPath .githooks
 > ```
@@ -142,7 +142,7 @@ Both assume you cloned the kit into `$KIT` (step 0 of [Quick start](#quick-start
 
 ```bash
 # 0. Clone into a fresh dir — never a fixed /tmp path (a stale clone installs a stale kit)
-KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT"
+KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/agent-kb.git "$KIT"
 cd <your-root>
 
 # 1. Vault scaffold + scripts + hook
@@ -230,11 +230,11 @@ both memory tiers.
 <summary><b>📋 Click to copy the agent initialization prompt</b></summary>
 
 ````text
-Set up a durable, agent-maintained knowledge base in THIS project using the kb-template kit.
+Set up a durable, agent-maintained knowledge base in THIS project using the agent-kb kit.
 
 1. Clone the kit into a FRESH dir (never a fixed /tmp path — a leftover clone installs a stale
    kit) and copy its parts in:
-     KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT" \
+     KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/agent-kb.git "$KIT" \
        && cp -R "$KIT/template" ./_knowledge \
        && mkdir -p ./_meta && cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh ./_meta/ \
        && mkdir -p ./.githooks && cp "$KIT/tooling/hooks/pre-commit" ./.githooks/ \
@@ -356,7 +356,7 @@ Your `_knowledge/` vault is never touched.
 <summary>Installed before v0.5? One-time bootstrap to get <code>kb-update.py</code> itself</summary>
 
 ```bash
-KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT" \
+KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/agent-kb.git "$KIT" \
   && cp "$KIT/tooling/kb-update.py" _meta/
 ```
 

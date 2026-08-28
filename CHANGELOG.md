@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to kb-template. Versions track `VERSION` in `tooling/kb-sync.py`.
+All notable changes to agent-kb. Versions track `VERSION` in `tooling/kb-sync.py`.
 
 Update an existing install with `python3 _meta/kb-update.py` (see
 [Updating the kit](README.md#updating-the-kit)).

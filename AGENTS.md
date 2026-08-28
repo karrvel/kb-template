@@ -1,4 +1,4 @@
-# AGENTS.md — for an agent working inside kb-template
+# AGENTS.md — for an agent working inside agent-kb
 
 This repo is a **kit**, not a project to build. It gives *other* projects a durable, agent-maintained
 knowledge base (plain-markdown, git-versioned, two-tier memory). Two jobs bring you here:
