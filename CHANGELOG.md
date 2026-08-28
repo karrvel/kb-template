@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to agent-kb. Versions track `VERSION` in `tooling/kb-sync.py`.
+All notable changes to carryover. Versions track `VERSION` in `tooling/kb-sync.py`.
 
 Update an existing install with `python3 _meta/kb-update.py` (see
 [Updating the kit](README.md#updating-the-kit)).
@@ -35,6 +35,16 @@ install pulls this work with `python3 _meta/kb-update.py --main` until it ships 
   `git ls-remote` prints the error and exits 2 rather than silently updating you from an unintended
   ref. The run header names the ref in use. Exit codes, `--check`'s read-only guarantee, and the
   "pin written only when every offered script was applied" rule are unchanged.
+
+## Unreleased
+
+### Changed
+- **Renamed: `kb-template` → `carryover`.** `kb-template` implied GitHub's *template repository*
+  feature ("Use this template"), which this repo is not — you copy directories out of it. The new
+  name is what the kit actually does: carry knowledge over between agent sessions.
+  GitHub redirects both former names, and `git clone` **and** `git ls-remote` were verified through
+  the redirect, so `kb-update.py` in an existing `_meta/` keeps working without any action. Update
+  it at your leisure and `REPO_URL` moves to the new address.
 
 ## 0.5 — 2026-08-27
 

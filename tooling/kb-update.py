@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # © 2026 karrvel — MIT License. See LICENSE.md.
-"""kb-update.py — pull the latest agent-kb scripts into this project's tooling directory.
+"""kb-update.py — pull the latest carryover scripts into this project's tooling directory.
 
 Copy this script (with the other tooling/*.py files) into your project's _meta/ dir at init time.
 Run it from there whenever you want to pull in new kit versions.
@@ -28,7 +28,7 @@ init-only and belongs to your project, not the kit.
 """
 import difflib, os, re, shutil, subprocess, sys, tempfile, textwrap, time
 
-REPO_URL  = "https://github.com/karrvel/agent-kb.git"
+REPO_URL  = "https://github.com/karrvel/carryover.git"
 REPO_TOOL = "tooling"          # subdirectory inside the kit that holds the scripts
 VERSION_FILE = "kb.version"    # written next to this script after a successful update
 

@@ -1,4 +1,4 @@
-# AGENTS.md — for an agent working inside agent-kb
+# AGENTS.md — for an agent working inside carryover
 
 This repo is a **kit**, not a project to build. It gives *other* projects a durable, agent-maintained
 knowledge base (plain-markdown, git-versioned, two-tier memory). Two jobs bring you here:

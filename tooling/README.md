@@ -28,7 +28,7 @@ check the `CLAUDE.md` LIVE blocks. It also emits a non-blocking nudge when paths
 (one-time, per clone); always clone into a fresh dir, never a fixed `/tmp` path, or a stale clone
 silently installs a stale kit:
 ```bash
-KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/agent-kb.git "$KIT"
+KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/carryover.git "$KIT"
 mkdir -p /path/to/project/_meta
 cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh /path/to/project/_meta/
 mkdir -p /path/to/project/.githooks
