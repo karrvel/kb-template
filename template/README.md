@@ -53,6 +53,16 @@ it in `.githooks/kb.env` only affects hook-triggered runs. `claude` covers both 
 the `CLAUDE.md` LIVE blocks.
 Commit `AGENTS.md`, `GEMINI.md`, and `.cursor/rules/kb-context.mdc` to the repo.
 
+**Orphan guard.** Removing `codex`, `gemini` or `cursor` from `KB_PLATFORMS` stops kb-sync *writing*
+that project-root file; it does not remove a file already written. The leftover stays on disk — and,
+committed as advised above, keeps feeding every agent the LIVE security findings and open work frozen
+as of the last run. kb-sync therefore warns about such a file on a normal run and under `--check`,
+naming it and the platform, until you **delete the file** or **put the platform back in
+`KB_PLATFORMS`**. It never deletes or edits the file itself (your git may track it), and it says
+nothing about a same-named file *you* wrote — that one is the collision case above. `MEMORY.md` and
+`CLAUDE.md` are out of scope, so dropping `claude` is not reported. An orphan is a warning, not an
+error: a normal run still exits 0.
+
 ## Frontmatter schema (every shard)
 ```yaml
 ---

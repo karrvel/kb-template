@@ -21,7 +21,8 @@ A ready hook lives at `hooks/pre-commit`. It fires only when markdown files unde
 (`$KB_VAULT`, default `_knowledge/`) are staged, at any depth, then runs exactly
 four stages: kb-fix (auto-quotes Obsidian-breakers + re-stages), kb-lint (blocks on schema errors),
 kb-links (blocks on broken internal links), and kb-sync `--check` (advisory — warns, never blocks,
-when the generated nav/MOCs/INDEX have drifted from the shards). Note `kb-sync --check` does **not**
+when the generated nav/MOCs/INDEX have drifted from the shards, or a platform file has been
+orphaned). Note `kb-sync --check` does **not**
 check the `CLAUDE.md` LIVE blocks. It also emits a non-blocking nudge when paths listed in
 `KB_CODE_PATHS` are staged without a vault change. There is no install script — installation is manual
 (one-time, per clone); always clone into a fresh dir, never a fixed `/tmp` path, or a stale clone
@@ -122,6 +123,18 @@ ownership marker, so kb-sync would then consider the file its own and overwrite 
 A hand-written `AGENTS.md` is never clobbered. `MEMORY.md`, `INDEX.md`, and the MOCs are *not*
 covered by the guard — kb-sync always rewrites those.
 
+**Orphan detection.** The mirror image of a collision: for the same three project-root files,
+kb-sync reports one that it *did* generate but no longer maintains, because that platform has since
+been dropped from `KB_PLATFORMS`. Such a file just sits there — frozen at the LIVE security findings
+and open work of the last run, still committed, still read by every agent. kb-sync names the file and
+the platform on a normal run and under `--check` (so the hook's advisory stage surfaces it), and
+states the fix: delete the file, or put the platform back in `KB_PLATFORMS`. It **never** deletes or
+modifies the file — it may be tracked by your git. Only kb-sync-owned files count, decided by the
+same anchored-marker test as the collision guard: a same-named file you wrote yourself is a collision,
+not an orphan, and is not reported here. `MEMORY.md` and `CLAUDE.md` are out of scope — `CLAUDE.md`
+belongs to you and kb-sync only splices between its markers. An orphan is a warning, not an error —
+a normal run still exits 0, and under `--check` it is reported as drift like any stale generated file.
+
 ## kb-lint.py — enforce the schema (so a vault can't drift into dialects)
 Validates every shard's frontmatter: required fields present; `type`/`status`/`volatility` values
 canonical (catches `decays-with-prs` vs `decays-with-code`, off-schema `done`/`complete`); dates
@@ -209,19 +222,36 @@ there (or edit the `SCAN=` line to wherever you keep it) or the guard won't actu
 
 ## kb-update.py — pull new kit versions
 
-Updates the top-level `tooling/*.py` scripts copied into `_meta/` to the latest version from the
-public repo — **not** `hooks/`, **not** `kb-eval/`, **not** `*.sh` (re-copy those by hand). Never
-touches `_knowledge/`. The `kb.version` pin file is written **only** when every offered script was
-applied, and **never** by `--check`.
+Updates the top-level `tooling/*.py` scripts copied into `_meta/` to the **newest release tag** of the
+public repo (or whatever ref you ask for — see below) — **not** `hooks/`, **not** `kb-eval/`, **not**
+`*.sh` (re-copy those by hand). Never touches `_knowledge/`. The `kb.version` pin file is written
+**only** when every offered script was applied, and **never** by `--check`.
 
 ```bash
-python3 kb-update.py          # interactive — colored diff per file, [y]es/[n]o/[a]ll/[q]uit
-python3 kb-update.py --yes    # silent (-y) — prints warning + 8-second countdown, then overwrites
-python3 kb-update.py --check  # dry-run (--dry-run / -n) — show what would change, write nothing
-python3 kb-update.py --help   # usage (-h)
+python3 kb-update.py            # interactive — colored diff per file, [y]es/[n]o/[a]ll/[q]uit
+python3 kb-update.py --yes      # silent (-y) — prints warning + 8-second countdown, then overwrites
+python3 kb-update.py --check    # dry-run (--dry-run / -n) — show what would change, write nothing
+python3 kb-update.py --main     # use the default branch tip instead of a release tag
+python3 kb-update.py --ref REF  # pin to an explicit tag, branch or sha (takes the next argument)
+python3 kb-update.py --help     # usage (-h)
 ```
-Exit codes: `0` ok · `1` updates exist (`--check`) or aborted · `2` usage error or clone failure ·
-`3` interactive run with no tty.
+Exit codes: `0` ok · `1` updates exist (`--check`) or aborted · `2` usage error, clone failure, or
+`git ls-remote` failure · `3` interactive run with no tty.
+
+**Which ref gets cloned.** With no ref flag, kb-update asks the remote for its tags
+(`git ls-remote --tags --refs`) and keeps only the ones shaped like a version — an optional leading
+`v` then a dotted numeric version (`v0.5`, `0.5`, `v1.2.3`). Those are ordered by **numeric tuple**,
+never lexically, so `v0.10` sorts above `v0.9`; anything else (`-rc1`, `-beta`, arbitrary tag names)
+is ignored. The highest one wins and is cloned shallowly at that tag. `--main` takes the default
+branch tip instead — the older behaviour, for people tracking development — and `--ref <REF>`
+pins to exactly what you name (it consumes the next argument, so a value like `v0.5` is never
+mistaken for an unknown flag; the two ref flags are mutually exclusive, exit 2). The run header says
+which it used, e.g. `target: v0.5 (newest release)`.
+
+Two edge cases, deliberately different: a remote with **no usable tags** is not an error — kb-update
+prints a one-line note and falls back to the default branch. A **failing `git ls-remote`** (network,
+auth) *is*: it prints the error and exits 2, the same as a failed clone, rather than silently
+updating you from an unintended ref.
 
 > **Silent mode warning.** New scripts can change how secrets and paths are handled. Run
 > interactive at least once on a new version before using `--yes` in automation.

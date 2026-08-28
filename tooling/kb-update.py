@@ -10,9 +10,16 @@ Usage:
   python3 _meta/kb-update.py --yes      # silent — overwrites without prompting (read the warning)
   python3 _meta/kb-update.py --check    # dry-run — show what would change, exit 1 if updates exist
                                         #   (--dry-run / -n are aliases; --check never writes)
+  python3 _meta/kb-update.py --main     # track the default branch tip instead of a release
+  python3 _meta/kb-update.py --ref v0.5 # pin to an explicit tag, branch or sha
+
+Which ref gets pulled: by default the NEWEST RELEASE TAG on the remote (tags shaped like v1.2.3
+or 1.2, compared numerically — v0.10 is newer than v0.9; rc/beta/other tags are ignored). If the
+remote has no such tags, kb-update falls back to the default branch and says so. --main and --ref
+override the default; they cannot be combined.
 
 Exit codes:
-  0  nothing to do, or scripts applied      2  usage error, or git clone failed
+  0  nothing to do, or scripts applied      2  usage error, git ls-remote or git clone failed
   1  updates exist (--check) / aborted      3  interactive run with no terminal on stdin
 
 What gets updated: only the *.py scripts in the same directory as this file (your _meta/ or
@@ -47,6 +54,67 @@ def _remote_version(kit_tool_dir: str) -> str:
         if m:
             return m.group(1)
     return "unknown"
+
+# ── release-tag resolution ───────────────────────────────────────────────────
+
+VERSION_TAG_RE = re.compile(r"^v?(\d+(?:\.\d+)*)$")
+
+def _version_key(tag: str):
+    """(1, 2, 3) for 'v1.2.3' / '1.2.3'; None for anything that isn't a plain version tag."""
+    m = VERSION_TAG_RE.match(tag)
+    if not m:
+        return None
+    return tuple(int(part) for part in m.group(1).split("."))
+
+def _newest_release_tag(tags: list) -> str:
+    """Newest version-shaped tag, compared as a numeric tuple — v0.10 beats v0.9. "" if none."""
+    versioned = [(k, t) for t in tags if (k := _version_key(t)) is not None]
+    if not versioned:
+        return ""
+    return max(versioned)[1]
+
+def _remote_tags(repo_url: str) -> tuple:
+    """(tags, "") on success; (None, stderr) if git ls-remote failed — never a silent fallback."""
+    result = subprocess.run(
+        ["git", "ls-remote", "--tags", "--refs", repo_url],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return None, (result.stderr.strip() or f"git ls-remote exited {result.returncode}")
+    tags = []
+    for line in result.stdout.splitlines():
+        _, _, ref = line.partition("\t")
+        if ref.startswith("refs/tags/"):
+            tags.append(ref[len("refs/tags/"):].strip())
+    return tags, ""
+
+def _clone_kit(repo_url: str, clone_ref: str, dest: str) -> tuple:
+    """Shallow-clone the kit at `clone_ref` ("" = default branch tip) into `dest`.
+
+    `--branch` covers tags and branches; a raw sha needs a full clone + checkout, so that is
+    tried second. Git's benign "not a commit" note for annotated tags lands in the captured
+    stderr and is only ever shown when the clone actually failed.
+    """
+    cmd = ["git", "clone", "--depth", "1", "--quiet"]
+    if clone_ref:
+        cmd += ["--branch", clone_ref]
+    result = subprocess.run(cmd + [repo_url, dest], capture_output=True, text=True)
+    if result.returncode == 0:
+        return True, ""
+    if not clone_ref:
+        return False, result.stderr.strip()
+
+    # second chance: --ref may be a sha, which --branch cannot take
+    shutil.rmtree(dest, ignore_errors=True)
+    os.makedirs(dest, exist_ok=True)
+    full = subprocess.run(["git", "clone", "--quiet", repo_url, dest], capture_output=True, text=True)
+    if full.returncode != 0:
+        return False, full.stderr.strip()
+    out = subprocess.run(["git", "-C", dest, "checkout", "--quiet", clone_ref],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        return False, (result.stderr.strip() + "\n" + out.stderr.strip()).strip()
+    return True, ""
 
 def _unified_diff(path_a: str, path_b: str, label: str) -> list[str]:
     a = open(path_a).readlines() if os.path.exists(path_a) else []
@@ -90,25 +158,57 @@ SILENT_WARNING = """\
 
 # ── argument handling ─────────────────────────────────────────────────────────
 
-KNOWN_FLAGS = {"--yes", "-y", "--check", "--dry-run", "-n", "--help", "-h"}
-USAGE = "usage: kb-update.py [--yes|-y] [--check|--dry-run|-n] [--help|-h]"
+KNOWN_FLAGS = {"--yes", "-y", "--check", "--dry-run", "-n", "--main", "--ref", "--help", "-h"}
+USAGE = ("usage: kb-update.py [--yes|-y] [--check|--dry-run|-n] [--main | --ref <REF>] [--help|-h]\n"
+         "  default   update to the newest release tag on the remote\n"
+         "  --main    track the default branch tip instead\n"
+         "  --ref R   pin to an explicit tag, branch or sha")
 NO_TTY = ("Error: interactive mode needs a terminal, but stdin is not a tty.\n"
           "  Re-run with --yes to apply silently, or --check for a read-only dry-run.")
+
+def _split_ref_arg(args: list) -> tuple:
+    """Pull the value out of `--ref <REF>` so it never reaches the unknown-flag check.
+
+    Returns (flags, ref, error). `--ref` itself stays in flags so KNOWN_FLAGS still governs it.
+    """
+    flags, ref, i = [], "", 0
+    while i < len(args):
+        arg = args[i]
+        flags.append(arg)
+        if arg == "--ref":
+            value = args[i + 1] if i + 1 < len(args) else ""
+            if not value or value.startswith("-"):
+                return flags, "", "--ref needs a value (a tag, branch or sha)"
+            ref = value
+            i += 2
+            continue
+        i += 1
+    return flags, ref, ""
 
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main() -> int:
     args = sys.argv[1:]
-    unknown = [a for a in args if a not in KNOWN_FLAGS]
+    if "--help" in args or "-h" in args:
+        print(USAGE)
+        return 0
+    flags, ref, ref_err = _split_ref_arg(args)
+    unknown = [a for a in flags if a not in KNOWN_FLAGS]
     if unknown:
         print(_colour(f"Error: unrecognised argument(s): {' '.join(unknown)}", "31"))
         print(USAGE)
         return 2
-    if "--help" in args or "-h" in args:
+    if ref_err:
+        print(_colour(f"Error: {ref_err}", "31"))
         print(USAGE)
-        return 0
-    silent  = "--yes" in args or "-y" in args
-    dry_run = "--check" in args or "--dry-run" in args or "-n" in args
+        return 2
+    silent  = "--yes" in flags or "-y" in flags
+    dry_run = "--check" in flags or "--dry-run" in flags or "-n" in flags
+    use_main = "--main" in flags
+    if use_main and ref:
+        print(_colour("Error: --main and --ref are mutually exclusive — pick one ref.", "31"))
+        print(USAGE)
+        return 2
 
     # interactive mode needs a real terminal — refuse before cloning or touching anything
     if not silent and not dry_run and not sys.stdin.isatty():
@@ -120,6 +220,29 @@ def main() -> int:
 
     print(f"kb-update  |  current version: {_colour(current_ver, '33')}")
     print(f"           |  directory: {script_dir}")
+
+    # which ref do we pull? default = newest release tag, so nobody gets mid-development code
+    fallback_note = ""
+    if ref:
+        clone_ref, target_label = ref, f"{ref} (--ref)"
+    elif use_main:
+        clone_ref, target_label = "", "default branch (--main)"
+    else:
+        tags, err = _remote_tags(REPO_URL)
+        if tags is None:
+            print()
+            print(_colour(f"Error: git ls-remote failed:\n{err}", "31"))
+            return 2
+        newest = _newest_release_tag(tags)
+        if newest:
+            clone_ref, target_label = newest, f"{newest} (newest release)"
+        else:
+            clone_ref, target_label = "", "default branch (no release tags found)"
+            fallback_note = ("Note: the remote publishes no release tags — falling back to the "
+                             "default branch.")
+    print(f"           |  target: {_colour(target_label, '36')}")
+    if fallback_note:
+        print(_colour(fallback_note, "33"))
     print()
 
     if silent and not dry_run:
@@ -137,16 +260,20 @@ def main() -> int:
     # clone the kit into a temp dir
     tmp = tempfile.mkdtemp(prefix="kb-update-")
     try:
-        print("Fetching latest kit …")
-        result = subprocess.run(
-            ["git", "clone", "--depth", "1", "--quiet", REPO_URL, tmp],
-            capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            print(_colour(f"Error: git clone failed:\n{result.stderr}", "31"))
+        print(f"Fetching kit @ {clone_ref or 'default branch'} …")
+        ok, err = _clone_kit(REPO_URL, clone_ref, tmp)
+        if not ok:
+            print(_colour(f"Error: could not fetch the kit:\n{err}", "31"))
+            if clone_ref:
+                print(f"  (ref requested: {clone_ref} — check that it exists on the remote)")
             return 2
 
         kit_tool_dir = os.path.join(tmp, REPO_TOOL)
+        if not os.path.isdir(kit_tool_dir):
+            # any ref is reachable via --ref, including ones predating the current layout
+            print(_colour(f"Error: the kit at {clone_ref or 'the default branch'} has no "
+                          f"{REPO_TOOL}/ directory — nothing to update from.", "31"))
+            return 2
         remote_ver   = _remote_version(kit_tool_dir)
         print(f"           |  remote version:  {_colour(remote_ver, '32')}")
         print()

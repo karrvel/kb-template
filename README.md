@@ -212,7 +212,9 @@ Both `echo` branches only *tell you* what to add — they deliberately don't edi
 blocks · `codex` → `AGENTS.md` · `gemini` → `GEMINI.md` · `cursor` → `.cursor/rules/kb-context.mdc`.
 kb-sync reads it from its own environment, so export it —
 `KB_PLATFORMS=claude,gemini python3 _meta/kb-sync.py`. Setting it in `.githooks/kb.env` only affects
-hook-triggered runs.
+hook-triggered runs. Drop `codex`, `gemini` or `cursor` *after* its file was generated and that file
+stays on disk, frozen at old content — kb-sync warns about the orphan (never deletes it) until you
+delete it yourself or re-enable the platform.
 
 Full brownfield method — mining git history, transcripts and existing docs: **[HOWTO.md](HOWTO.md)**.
 
@@ -336,11 +338,15 @@ See **[CHANGELOG.md](CHANGELOG.md)** for what changed, then:
 python3 _meta/kb-update.py          # interactive — diff per script, prompt before each
 python3 _meta/kb-update.py --yes    # silent — warning + 8s countdown, then overwrites
 python3 _meta/kb-update.py --check  # dry run — read-only, exit 1 if updates exist
+python3 _meta/kb-update.py --main       # track the development tip instead of a release
+python3 _meta/kb-update.py --ref v0.5   # pin to an explicit tag, branch or sha
 ```
 
-Only the top-level `tooling/*.py` in `_meta/` are updated — not the `*.sh` helpers, not `hooks/`,
-not `kb-eval/`. Your `_knowledge/` vault is never touched. `kb-update.py` tracks the tip of `main`,
-not the latest tag.
+By default it updates to the **newest release tag** — versions are ordered numerically, so `v0.10`
+outranks `v0.9`, and non-version tags are ignored. A repo with no release tags falls back to the
+default branch with a one-line note. The run header prints the ref it used. Only the top-level
+`tooling/*.py` in `_meta/` are updated — not the `*.sh` helpers, not `hooks/`, not `kb-eval/`.
+Your `_knowledge/` vault is never touched.
 
 > [!WARNING]
 > Silent mode skips the diff review. Run interactive at least once on a new version before using

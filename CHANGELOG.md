@@ -5,6 +5,37 @@ All notable changes to kb-template. Versions track `VERSION` in `tooling/kb-sync
 Update an existing install with `python3 _meta/kb-update.py` (see
 [Updating the kit](README.md#updating-the-kit)).
 
+## Unreleased
+
+Not in a release tag yet. `kb-update.py` now defaults to the newest release tag, so an existing
+install pulls this work with `python3 _meta/kb-update.py --main` until it ships in a tag.
+
+### Added
+- **Orphaned-platform-file detection in `kb-sync.py`** — the mirror image of 0.5's collision guard.
+  Dropping a platform from `KB_PLATFORMS` stopped kb-sync *writing* its `AGENTS.md` / `GEMINI.md` /
+  `.cursor/rules/kb-context.mdc`, but left the file on disk — and, in both supported layouts,
+  committed — frozen at the LIVE security findings and open work of the last run. Every agent kept
+  reading it, and nothing anywhere said it was stale. kb-sync now names such a file and its platform
+  on a normal run **and** under `--check`, so the pre-commit hook's advisory stage surfaces it, with
+  the two fixes: delete the file, or re-enable the platform in `KB_PLATFORMS`. It never deletes or
+  modifies the file — your git may track it, and deleting a tracked file out from under someone is
+  exactly the harm this kit keeps fixing. Ownership reuses the existing anchored-marker test, so a
+  same-named file *you* wrote is still a collision, not an orphan, and stays unreported here.
+  `MEMORY.md` and `CLAUDE.md` are out of scope. Exit code on a normal run stays 0.
+
+### Changed
+- **`kb-update.py` updates to the newest *release tag*, not the tip of the default branch.** Once
+  v0.5 was tagged, the old clone-the-tip behaviour handed users unreleased mid-development scripts
+  while both sides still printed "0.5". It now discovers tags with `git ls-remote --tags --refs`,
+  keeps only version-shaped names (an optional leading `v`, then a dotted numeric version), orders
+  them by **numeric tuple** — so `v0.10` ranks above `v0.9`, never a lexical sort — and clones that
+  tag; `-rc`/`-beta`/arbitrary tags are ignored. `--main` restores the old behaviour for people
+  tracking development, and `--ref <REF>` pins to an explicit tag, branch or sha. A remote with no
+  usable tags falls back to the default branch with a one-line note (not an error); a failing
+  `git ls-remote` prints the error and exits 2 rather than silently updating you from an unintended
+  ref. The run header names the ref in use. Exit codes, `--check`'s read-only guarantee, and the
+  "pin written only when every offered script was applied" rule are unchanged.
+
 ## 0.5 — 2026-08-27
 
 First tagged release, and the first since the kit went public under MIT.

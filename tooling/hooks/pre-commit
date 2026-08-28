@@ -68,11 +68,14 @@ if ! LINKOUT="$("$PY" "$META/kb-links.py" 2>&1)"; then
   fail "broken internal links (kb-links)"
 fi
 
-# 4. advisory: warn (never block) if generated nav/MOCs/INDEX are stale vs the shards.
-#    Catches "edited a shard but forgot to re-run kb-sync" and hand-edited generated files.
+# 4. advisory: warn (never block) when kb-sync --check reports drift or an orphaned platform file.
+#    Catches "edited a shard but forgot to re-run kb-sync", and a file left behind by a platform
+#    that was dropped from KB_PLATFORMS.
 if ! SYNCOUT="$("$PY" "$META/kb-sync.py" --check 2>&1)"; then
   printf '%s\n' "$SYNCOUT" | grep -E '⚠|  '
-  echo "  ↳ advisory only — run: python3 $META/kb-sync.py && git add _knowledge/"
+  # kb-sync names the right fix per item — re-run for a stale file, delete-or-re-enable for an
+  # orphan. Don't prescribe one here: "run kb-sync" never fixes an orphan.
+  echo "  ↳ advisory only — nothing was blocked; apply the fix named above, then re-stage."
 fi
 
 echo "✓ KB pre-commit: vault clean (fix · lint · links)"

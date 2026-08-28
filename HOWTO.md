@@ -179,6 +179,18 @@ are always rewritten. If no project-root `CLAUDE.md` exists at all, kb-sync warn
 blocks were not wired and continues (exit 0) — they stay unwired until you create it with the two
 marker pairs.
 
+**Orphan guard.** Dropping a platform from `KB_PLATFORMS` stops kb-sync *writing* its file — it does
+not remove one already written. A generated `AGENTS.md` / `GEMINI.md` / `.cursor/rules/kb-context.mdc`
+left behind that way is frozen at whatever LIVE security findings and open work it held on the last
+run, and it is usually still committed — so every agent reading it is fed stale content forever, with
+nothing to say so. kb-sync names such a file on a normal run *and* under `--check` (so the hook's
+advisory stage surfaces it too), with the two fixes: **delete the file**, or **re-enable that platform
+in `KB_PLATFORMS`**. It never deletes or edits the file itself — it may be tracked by your git. Only
+files kb-sync generated are reported; a same-named file *you* wrote is the collision case above and
+stays silent here. `MEMORY.md` and `CLAUDE.md` are out of scope (`CLAUDE.md` is your file — kb-sync
+only splices between the markers). An orphan is a warning, not an error — a normal run still exits 0;
+under `--check` it counts as drift, exactly like any other out-of-date generated file.
+
 Commit `AGENTS.md`, `GEMINI.md`, and `.cursor/rules/kb-context.mdc` to the repo. `MEMORY.md` lives
 outside the repo (in the Claude Code project-memory dir) and is never committed.
 
@@ -218,7 +230,16 @@ When a new version of kb-template ships, pull updated scripts into `_meta/` with
 python3 _meta/kb-update.py          # interactive — shows diff, prompts before each file
 python3 _meta/kb-update.py --yes    # silent — 8-second countdown + warning, then overwrites
 python3 _meta/kb-update.py --check  # dry-run — shows what would change, exit 1 if updates exist
+python3 _meta/kb-update.py --main       # the default branch tip — for tracking development
+python3 _meta/kb-update.py --ref v0.5   # pin to an explicit tag, branch or sha
 ```
+
+**Which ref you get.** By default kb-update pulls the **newest release tag**, not the tip of the
+default branch: it lists the remote's tags, keeps the ones shaped like a version (`v0.5`, `0.5`,
+`v1.2.3`), and orders them *numerically* — so `v0.10` outranks `v0.9` — then clones that tag. Tags
+that aren't plain versions (`-rc1`, `-beta`, anything else) are ignored. If the remote has no
+usable tags at all it prints a one-line note and falls back to the default branch rather than
+failing. Either way the run header names the ref in use (`target: v0.5 (newest release)`).
 
 It updates only the top-level `tooling/*.py` scripts copied into `_meta/` — not `hooks/`, not
 `kb-eval/`, not the `*.sh` helpers. Your `_knowledge/` vault is never touched. The `kb.version` pin
