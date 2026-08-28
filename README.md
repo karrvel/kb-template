@@ -4,10 +4,15 @@
 
 **Give any project a durable, agent-maintained knowledge base.**
 
-Plain markdown · git-versioned · two-tier memory — the thing that lets an AI coding agent *remember*
-across sessions the gotchas, decisions, and prod caveats that die with the context window.
+Plain markdown · git-versioned · two-tier memory — the thing that lets an AI coding agent
+*remember* the gotchas, decisions, and prod caveats that die with the context window.
 
-<sub>Karpathy *LLM-wiki* + MemGPT/Letta two-tier memory · fact-checked · impact-measured</sub>
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+[![Release](https://img.shields.io/github/v/release/karrvel/kb-template?color=success)](https://github.com/karrvel/kb-template/releases/latest)
+[![Python 3](https://img.shields.io/badge/python-3.9%2B-3776AB.svg)](https://www.python.org/)
+[![Dependencies: none](https://img.shields.io/badge/dependencies-none-success.svg)](#whats-inside)
+
+<sub>Karpathy <em>LLM-wiki</em> + MemGPT/Letta two-tier memory · fact-checked · impact-measured</sub>
 
 </div>
 
@@ -15,15 +20,15 @@ across sessions the gotchas, decisions, and prod caveats that die with the conte
 
 ## Why
 
-An AI coding agent forgets everything between sessions. The knowledge that hurts most to lose isn't
-in the code — it's **off-code tribal knowledge**: "this env var breaks with a trailing slash," "that
-liveness check is cosmetic," "these rate limits were loosened on the box and aren't in git." `grep`
-can't recover it. This kit compiles that knowledge, **once**, into a browsable markdown wiki that
-compounds across sessions.
+An AI coding agent forgets everything between sessions. What hurts most to lose isn't in the code —
+it's **off-code tribal knowledge**: *"this env var breaks with a trailing slash," "that liveness
+check is cosmetic," "these rate limits were loosened on the box and aren't in git."* `grep` can't
+recover it, and re-reading the repo can't either.
 
-The research conclusion: **below ~150–200 pages / ~50–100k tokens, a plain-markdown index + context
-window retrieves more reliably than embeddings** — and stays diff-able, greppable, and human-editable.
-Skip vector RAG until you outgrow it.
+This kit compiles that knowledge **once** into a browsable markdown wiki that compounds across
+sessions. The load-bearing research conclusion: below **~150–200 pages / ~50–100k tokens**, a
+plain-markdown index plus the context window retrieves more reliably than embeddings — and stays
+diff-able, greppable, and human-editable. Skip vector RAG until you outgrow it.
 
 ## How it works
 
@@ -62,109 +67,69 @@ flowchart TB
 
 ## What's inside
 
-```
-kb-template/
-├── setup/        starter .gitignore files for each setup option (see below)
-├── research/     WHY  — the fact-checked rationale
-├── template/     WHAT — the vault scaffold (copy this into your project as _knowledge/)
-├── tooling/      HOW  — the scripts, pre-commit hook, and impact eval
-│   ├── prefilter.py    transcripts → digests     kb-sync.py      shards → navigation + memory
-│   ├── kb-lint.py      schema gate               kb-fix.py       Obsidian-safe frontmatter
-│   ├── kb-links.py     link-rot gate             kb-staleness.py re-verify queue
-│   ├── kb-update.py    pull new kit versions     kb-eval/        measure KB impact (A/B)
-│   └── hooks/          pre-commit gate           *.sh            shell helpers (copy these too)
-├── HOWTO.md      the build playbook
-├── AGENTS.md     for agents working inside the kit
-├── CHANGELOG.md  what changed per version
-└── SECURITY.md   handling sensitive vaults  ·  LICENSE.md  MIT license
-```
+Stdlib-only Python 3 — no dependencies, nothing to install.
 
-The vault is plain markdown with `[[wikilinks]]` — open `_knowledge/` in **[Obsidian](https://obsidian.md)** for graph view, backlinks, and full-text search. No plugins required.
+| | |
+|---|---|
+| **`template/`** | the vault scaffold you copy in as `_knowledge/` |
+| **`tooling/`** | `kb-sync` (shards → navigation + memory) · `kb-lint` (schema gate) · `kb-fix` (Obsidian-safe frontmatter) · `kb-links` (link-rot gate) · `kb-staleness` (re-verify queue) · `kb-update` (pull new versions) · `prefilter` (transcripts → digests) · `hooks/` · `kb-eval/` |
+| **`setup/`** | ready `.gitignore` for each layout below |
+| **`research/`** | the fact-checked *why* |
+| **Docs** | [HOWTO](HOWTO.md) · [AGENTS](AGENTS.md) · [CHANGELOG](CHANGELOG.md) · [SECURITY](SECURITY.md) · [LICENSE](LICENSE.md) |
+
+The vault is plain markdown with `[[wikilinks]]` — open `_knowledge/` in
+**[Obsidian](https://obsidian.md)** for graph view, backlinks and full-text search. No plugins.
 
 ---
 
 ## Choose your setup
 
-Two ways to use this kit. Pick one before running the quick start.
+| | **Option A — Workspace** | **Option B — Embedded** |
+|---|---|---|
+| **Shape** | wrapper dir; git tracks *only* the vault | vault lives inside your project's repo |
+| **Projects** | many, under `repos/`, each its own git | one |
+| **Best for** | several related repos sharing one KB | a single project, KB travels with the code |
+| **`.gitignore`** | `cp "$KIT/setup/workspace.gitignore" .gitignore` | append `setup/embedded.gitignore` to yours |
 
-Both snippets below assume you already cloned the kit into `$KIT` — the same one-liner as quick
-start step 0, run in the same shell:
+Both assume you cloned the kit into `$KIT` (step 0 of [Quick start](#quick-start)).
 
-```bash
-KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT"
-```
-
-### Option A — Workspace (one KB for multiple projects)
-
-A standalone wrapper directory whose git tracks **only** the vault. Your actual projects live under
-`repos/` as their own self-contained git repos.
-
-```
-~/my-workspace/
-├── _knowledge/        ← git tracks only this (the vault)
-├── _meta/             ← kit scripts, untracked (disposable copy)
+<table>
+<tr><th>Option A — Workspace</th><th>Option B — Embedded</th></tr>
+<tr><td><pre>~/my-workspace/
+├── _knowledge/   ← tracked (the vault)
+├── _meta/        ← kit scripts, untracked
 ├── repos/
-│   ├── project-one/   ← its own git repo
-│   └── project-two/   ← its own git repo
-├── CLAUDE.md          ← tracked
-├── AGENTS.md          ← tracked · generated by kb-sync (platform: codex)
-├── GEMINI.md          ← tracked · generated by kb-sync (platform: gemini)
-├── .cursor/rules/kb-context.mdc   ← tracked · generated by kb-sync (platform: cursor)
-└── .githooks/         ← tracked (pre-commit gate)
-```
-
-**When to use:** you work across several related repos and want one shared KB for all of them. This
-is the recommended setup for a team workspace or a mono-developer who juggles multiple services.
-
-```bash
-mkdir ~/my-workspace && cd ~/my-workspace
-git init
-cp "$KIT/setup/workspace.gitignore" .gitignore
-```
+│   ├── project-one/   ← own git
+│   └── project-two/   ← own git
+├── CLAUDE.md     ← tracked
+├── AGENTS.md     ← tracked, generated
+├── GEMINI.md     ← tracked, generated
+└── .githooks/    ← tracked</pre></td>
+<td><pre>~/Projects/my-project/
+├── _knowledge/   ← tracked with your code
+├── _meta/        ← kit scripts, gitignored
+├── src/          ← your code
+├── CLAUDE.md     ← tracked
+├── AGENTS.md     ← generated
+├── GEMINI.md     ← generated
+└── .cursor/rules/kb-context.mdc
+                  ← generated</pre></td></tr>
+</table>
 
 ### Option B — Embedded (KB lives inside an existing project)
 
-The vault lives alongside your project's source code, tracked by the project's own git. No wrapper
-directory needed — just drop it in.
-
-```
-~/Projects/my-project/
-├── _knowledge/        ← tracked by the project's own git
-├── _meta/             ← kit scripts, gitignored
-├── src/               ← your code (tracked as normal)
-├── CLAUDE.md          ← tracked
-├── AGENTS.md          ← generated by kb-sync (platform: codex)
-├── GEMINI.md          ← generated by kb-sync (platform: gemini)
-└── .cursor/rules/kb-context.mdc   ← generated by kb-sync (platform: cursor)
-```
-
-**When to use:** you have a single project with its own repo and want the KB to travel with it,
-visible to all contributors, versioned in the same history.
-
 > [!IMPORTANT]
-> Dropping the vault into an **existing** repo means `kb-sync.py` writes three files at your project
-> root and **owns** them: `AGENTS.md`, `GEMINI.md`, `.cursor/rules/kb-context.mdc`. A hand-written
-> root `AGENTS.md` is a common convention in exactly these repos — if any of the three already
-> exists and wasn't generated by kb-sync, kb-sync **skips it and prints a warning** and the run
-> continues (exit code stays 0) instead of overwriting it. Two fixes, and only two: **rename/move
-> your file**, or **drop that platform from `KB_PLATFORMS`** (`export`ed in the shell that runs
-> kb-sync; `.githooks/kb.env` only covers hook-triggered runs). Do **not** paste the generated
-> block into your own file — it opens with kb-sync's ownership marker, so the next run would adopt
-> the file and overwrite it.
-
-```bash
-cd ~/Projects/my-project   # your existing project repo
-# append the embedded exclusions to your existing .gitignore
-# (leading newline: your .gitignore may not end in one):
-{ printf '\n'; cat "$KIT/setup/embedded.gitignore"; } >> .gitignore
-```
+> `kb-sync` **owns** three files at your project root: `AGENTS.md`, `GEMINI.md`,
+> `.cursor/rules/kb-context.mdc`. A hand-written root `AGENTS.md` is a common convention in exactly
+> these repos — if one already exists and kb-sync didn't generate it, kb-sync **warns, skips it and
+> continues** (exit 0). Two remedies, only two: **rename/move your file**, or **drop that platform
+> from `KB_PLATFORMS`**. Do **not** paste the generated block into your own file — it opens with
+> kb-sync's ownership marker, so the next run would adopt and overwrite it.
 
 > [!NOTE]
 > **For collaborators.** `_meta/` is gitignored and `core.hooksPath` is per-clone *local* config, so
-> a teammate who clones the project gets **no tooling and no gate** — and an ungated commit can land
-> an invalid shard in the vault that then blocks everyone else's commits. Every contributor runs
-> this once after cloning (see the hooks warning under [Quick start](#quick-start) first if the repo
-> already has its own hooks):
+> a teammate who clones gets **no tooling and no gate** — and an ungated commit can land an invalid
+> shard that blocks everyone else. Each contributor runs this once:
 > ```bash
 > KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT" \
 >   && mkdir -p _meta && cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh _meta/ \
@@ -176,25 +141,29 @@ cd ~/Projects/my-project   # your existing project repo
 ## Quick start
 
 ```bash
-# 0. Clone the kit into a fresh dir (never a fixed /tmp path — a stale clone installs a stale kit)
+# 0. Clone into a fresh dir — never a fixed /tmp path (a stale clone installs a stale kit)
 KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT"
-
-# 1. Copy the vault scaffold
-cp -R "$KIT/template"  <your-root>/_knowledge
-
-# 2. Copy the scripts (both the Python tools and the shell helpers)
-mkdir -p <your-root>/_meta && cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh <your-root>/_meta/
-
-# 3. Install the pre-commit hook
-mkdir -p <your-root>/.githooks
-cp "$KIT/tooling/hooks/pre-commit" <your-root>/.githooks/
-chmod +x <your-root>/.githooks/pre-commit
-git -C <your-root> config core.hooksPath .githooks   # ← see warning below if the repo has hooks
-
-# 4. Create the project-root CLAUDE.md — without these markers the always-loaded LIVE tier is
-#    never wired (kb-sync warns and skips, every gate still exits 0). Guarded: re-running this
-#    must not append a second marker pair.
 cd <your-root>
+
+# 1. Vault scaffold + scripts + hook
+cp -R "$KIT/template" ./_knowledge
+mkdir -p ./_meta      && cp "$KIT"/tooling/*.py "$KIT"/tooling/*.sh ./_meta/
+mkdir -p ./.githooks  && cp "$KIT/tooling/hooks/pre-commit" ./.githooks/
+chmod +x ./.githooks/pre-commit
+git config core.hooksPath .githooks     # ⚠ see below if this repo already has hooks
+
+# 2. Wire the always-loaded tier (see the CLAUDE.md block below), fill in
+#    _knowledge/README.md ({PROJECT}/TODO), then generate navigation:
+python3 _meta/kb-sync.py && python3 _meta/kb-fix.py \
+  && python3 _meta/kb-lint.py && python3 _meta/kb-links.py
+```
+
+<details>
+<summary><b>Step 2 — the <code>CLAUDE.md</code> block</b> (without it the LIVE tier is never wired, and every gate still exits 0)</summary>
+
+Re-runnable; it won't append a second marker pair.
+
+```bash
 grep -q 'BEGIN:sync:live-security' CLAUDE.md 2>/dev/null || cat >> CLAUDE.md <<'EOF'
 
 > **First action every session:** read `_knowledge/INDEX.md`.
@@ -206,54 +175,54 @@ grep -q 'BEGIN:sync:live-security' CLAUDE.md 2>/dev/null || cat >> CLAUDE.md <<'
 <!-- BEGIN:sync:open-work -->
 <!-- END:sync:open-work -->
 EOF
-
-# 5. Fill in _knowledge/README.md (replace {PROJECT}/TODO), then generate navigation
-python3 _meta/kb-sync.py && python3 _meta/kb-fix.py \
-  && python3 _meta/kb-lint.py && python3 _meta/kb-links.py
 ```
 
-> [!WARNING]
-> `git config core.hooksPath .githooks` **replaces** `.git/hooks` wholesale — every hook the repo
-> already had (pre-commit framework, secret scanners) silently stops running. In a project that
-> already has hooks, skip that line and wire the gate in from `<your-root>` without clobbering them:
-> ```bash
-> # undo step 3 if you already pasted it — while core.hooksPath is set, .git/hooks/ is ignored,
-> # so chaining or symlinking there fixes nothing (a pre-existing value like Husky's is left alone):
-> HP=$(git config core.hooksPath)
-> [ "$HP" = .githooks ] && { git config --unset core.hooksPath; HP=; }
-> # install only into an empty slot — never clobber a hook, never create one that can't run:
-> if [ -n "$HP" ]; then
->   echo "core.hooksPath=$HP — .git/hooks/ is inert; CHAIN the gate from $HP/pre-commit:"
->   echo '  . "$(git rev-parse --show-toplevel)"/.githooks/pre-commit'
-> elif [ -e .git/hooks/pre-commit ]; then
->   echo "pre-commit hook already exists — CHAIN the KB gate instead: append this line to it"
->   echo '  . "$(git rev-parse --show-toplevel)"/.githooks/pre-commit'
-> else
->   ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit
-> fi
-> ```
-> Both `echo` branches only *tell you* what to add — they deliberately don't edit your hook.
-> **Until that chaining line is actually in the hook the branch names, the KB gate is not running.**
+</details>
 
-Step 5 is also the first run that writes `AGENTS.md` / `GEMINI.md` / `.cursor/rules/kb-context.mdc`
-at your project root — see the note under [Option B](#option-b--embedded-kb-lives-inside-an-existing-project).
+<details>
+<summary><b>⚠ If your repo already has git hooks</b> — <code>core.hooksPath</code> silently disables every one of them</summary>
 
-Which of those get written is `KB_PLATFORMS` — comma-separated, default `claude,codex,gemini,cursor`
-(spaces around items are fine): `claude` → `MEMORY.md` **and** the `CLAUDE.md` LIVE blocks ·
-`codex` → `AGENTS.md` · `gemini` → `GEMINI.md` · `cursor` → `.cursor/rules/kb-context.mdc`. It is
-read from the environment of the `kb-sync` run, so it must be exported —
-`KB_PLATFORMS=claude,gemini python3 _meta/kb-sync.py`, or `export KB_PLATFORMS=…` in your shell
-profile. Setting it in `.githooks/kb.env` only affects hook-triggered runs.
+`core.hooksPath` **replaces** `.git/hooks` wholesale, so pre-commit frameworks and secret scanners
+stop running with no message. While it's set, anything in `.git/hooks/` is inert — chaining or
+symlinking *there* fixes nothing. Skip that line in step 1 and run:
 
-Full brownfield distillation method (mine git history, transcripts, existing docs): **[HOWTO.md](HOWTO.md)**.
+```bash
+# undo step 1's config if you already ran it (a pre-existing value like Husky's is left alone):
+HP=$(git config core.hooksPath)
+[ "$HP" = .githooks ] && { git config --unset core.hooksPath; HP=; }
+
+if [ -n "$HP" ]; then
+  echo "core.hooksPath=$HP — .git/hooks/ is inert; CHAIN the gate from $HP/pre-commit:"
+  echo '  . "$(git rev-parse --show-toplevel)"/.githooks/pre-commit'
+elif [ -e .git/hooks/pre-commit ]; then
+  echo "pre-commit hook already exists — CHAIN the KB gate: append this line to it"
+  echo '  . "$(git rev-parse --show-toplevel)"/.githooks/pre-commit'
+else
+  ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit
+fi
+```
+
+Both `echo` branches only *tell you* what to add — they deliberately don't edit your hook.
+**Until that line is actually in the hook they name, the KB gate is not running.**
+
+</details>
+
+**`KB_PLATFORMS`** picks which context files get written — comma-separated, default
+`claude,codex,gemini,cursor`, spaces tolerated: `claude` → `MEMORY.md` **and** the `CLAUDE.md` LIVE
+blocks · `codex` → `AGENTS.md` · `gemini` → `GEMINI.md` · `cursor` → `.cursor/rules/kb-context.mdc`.
+kb-sync reads it from its own environment, so export it —
+`KB_PLATFORMS=claude,gemini python3 _meta/kb-sync.py`. Setting it in `.githooks/kb.env` only affects
+hook-triggered runs.
+
+Full brownfield method — mining git history, transcripts and existing docs: **[HOWTO.md](HOWTO.md)**.
 
 ---
 
 ## Agent initialization
 
-Give the prompt below to an agent (Claude Code / Codex) **inside the workspace or project you want
-to document**. It mines git history, past agent sessions, and existing docs — then writes atomic
-shards and wires the two memory tiers.
+Give the prompt below to an agent (Claude Code / Codex) **inside the project you want to document**.
+It mines git history, past agent sessions and existing docs, then writes atomic shards and wires
+both memory tiers.
 
 <details>
 <summary><b>📋 Click to copy the agent initialization prompt</b></summary>
@@ -349,49 +318,49 @@ See [AGENTS.md](AGENTS.md) for agents landing *inside this kit repo*.
 
 ## Maintenance
 
-After editing shards, run in order:
-
 ```bash
 python3 _meta/kb-sync.py && python3 _meta/kb-fix.py \
   && python3 _meta/kb-lint.py && python3 _meta/kb-links.py && python3 _meta/kb-staleness.py
 ```
 
-The pre-commit hook runs four stages automatically on staged `_knowledge/` files: `kb-fix`
-(auto-fix, never blocks) → `kb-lint` (blocks) → `kb-links` (blocks) → `kb-sync --check` (advisory,
-warns only). Put `kb-staleness` on a pre-session or weekly nudge — re-verifying
-`decays-with-code` shards is the discipline everyone skips.
+The pre-commit hook runs four stages automatically on staged `_knowledge/` files: **kb-fix**
+(auto-fix, never blocks) → **kb-lint** (blocks) → **kb-links** (blocks) → **kb-sync `--check`**
+(advisory). Put `kb-staleness` on a pre-session or weekly nudge — re-verifying `decays-with-code`
+shards is the discipline everyone skips.
 
 ## Updating the kit
 
-When a new version ships — see **[CHANGELOG.md](CHANGELOG.md)** for what changed — run the bundled
-updater from your `_meta/` directory:
+See **[CHANGELOG.md](CHANGELOG.md)** for what changed, then:
 
-`kb-update.py` shipped in v0.5, so installations made before it don't have it yet. One-time
-bootstrap for those (skip it if `_meta/kb-update.py` is already there):
+```bash
+python3 _meta/kb-update.py          # interactive — diff per script, prompt before each
+python3 _meta/kb-update.py --yes    # silent — warning + 8s countdown, then overwrites
+python3 _meta/kb-update.py --check  # dry run — read-only, exit 1 if updates exist
+```
+
+Only the top-level `tooling/*.py` in `_meta/` are updated — not the `*.sh` helpers, not `hooks/`,
+not `kb-eval/`. Your `_knowledge/` vault is never touched. `kb-update.py` tracks the tip of `main`,
+not the latest tag.
+
+> [!WARNING]
+> Silent mode skips the diff review. Run interactive at least once on a new version before using
+> `--yes` in automation — script changes can affect how secrets and paths are handled.
+
+<details>
+<summary>Installed before v0.5? One-time bootstrap to get <code>kb-update.py</code> itself</summary>
 
 ```bash
 KIT=$(mktemp -d) && git clone --depth 1 https://github.com/karrvel/kb-template.git "$KIT" \
   && cp "$KIT/tooling/kb-update.py" _meta/
 ```
 
-```bash
-python3 _meta/kb-update.py          # interactive — diff per script, prompt before each
-python3 _meta/kb-update.py --yes    # silent — 8-second countdown + warning, then overwrites
-python3 _meta/kb-update.py --check  # dry-run — show changes, exit 1 if updates exist
-```
-
-Only the top-level `tooling/*.py` scripts copied into `_meta/` are updated — not the `*.sh` helpers,
-not `hooks/`, not `kb-eval/`. Your `_knowledge/` vault is never touched.
-
-> [!WARNING]
-> Silent mode skips the diff review. Run interactive at least once on a new version before using
-> `--yes` in automation — script changes can affect how secrets and paths are handled.
+</details>
 
 ---
 
 ## Measured impact
 
-Controlled A/B (same agent with vs without the vault, blinded LLM grading):
+Controlled A/B — same agent with vs without the vault, blinded LLM grading:
 
 | Question type | n | with KB | without KB | Δ |
 |---|--:|--:|--:|--:|
@@ -405,20 +374,20 @@ Controlled A/B (same agent with vs without the vault, blinded LLM grading):
 > directional evidence, not a public benchmark. The wins concentrate exactly where a KB should help
 > (project-specific, off-code, multi-hop knowledge) with no hallucination penalty.
 
-Scrubbed breakdown + a sample trap: [`tooling/kb-eval/sample-report.md`](tooling/kb-eval/sample-report.md). Reproduce on your own vault: [`tooling/kb-eval/`](tooling/kb-eval/).
+Scrubbed breakdown and a sample trap: [`tooling/kb-eval/sample-report.md`](tooling/kb-eval/sample-report.md).
+Reproduce it on your own vault: [`tooling/kb-eval/`](tooling/kb-eval/).
 
 ## When to use it
 
-Single-curator vault under **~150–200 pages / ~50–100k tokens** → this is the right tool.
+✅ Single-curator vault under **~150–200 pages / ~50–100k tokens**.
 
-Above that ceiling, or for multi-tenant / heavily time-varying corpora needing fuzzy semantic
-recall: keep the wiki as the human-legible source of truth and add vector (GraphRAG/RAPTOR) or
+❌ Above that ceiling, or multi-tenant / heavily time-varying corpora needing fuzzy semantic recall
+— keep the wiki as the human-legible source of truth and add vector (GraphRAG/RAPTOR) or
 temporal-graph retrieval *on top*. Don't reach for a vector DB below the ceiling; it's curation tax.
 
 ## License & security
 
 MIT — © 2026 karrvel. See **[LICENSE.md](LICENSE.md)**.
 
-Keep real vaults in **private** repos, never commit secrets, and treat distillates carefully.
-Full handling rules: **[SECURITY.md](SECURITY.md)**. The impact eval keeps secret-bearing traps in a
-git-ignored `traps.local.jsonl`; only a redacted example ships.
+Keep real vaults in **private** repos, never commit secrets, and treat distillates carefully —
+full handling rules in **[SECURITY.md](SECURITY.md)**.
