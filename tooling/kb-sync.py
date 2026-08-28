@@ -131,6 +131,16 @@ def write_owned(path, body):
 def is_live(i, live_by):
     return i.get("volatility") == "decays-with-code" if live_by == "volatility" else i.get("status") == "active"
 
+# An OPEN security finding for the always-loaded tier needs BOTH axes, because they answer
+# different questions: `status` says open-vs-closed, `volatility` says finding-about-the-code
+# vs standing rule. Volatility alone put `status: resolved` findings under the "open security
+# findings" heading — telling every agent at session start that a patched vulnerability was
+# live. Status alone would flood that heading with durable policy ("never commit secrets"),
+# which is not a finding and never closes. The security MOC deliberately still splits on
+# volatility alone; its label says "(decays-with-code)" rather than claiming "open".
+def is_open_finding(i):
+    return i.get("status") == "active" and i.get("volatility") == "decays-with-code"
+
 def moc(title, subdir, intro, group_by_area=False, split_status=False,
         live_by="status", live_label="LIVE", rest_label="Durable / resolved"):
     items = collect(subdir)
@@ -181,7 +191,7 @@ def index(counts, has_arch):
 def memory(sec, tsk):
     if not CHECK:                       # --check is read-only: never create the memory dir on disk
         os.makedirs(MEMORY_DIR, exist_ok=True)
-    live_sec = [i for i in sec if i.get("volatility") == "decays-with-code"]
+    live_sec = [i for i in sec if is_open_finding(i)]
     live_tsk = [i for i in tsk if i.get("status") == "active"]
     notes = sorted(os.path.basename(f) for f in glob.glob(os.path.join(MEMORY_DIR, "*.md")) if os.path.basename(f) != "MEMORY.md")
     def t(i): return (i.get("live_summary") or i.get("title", i["name"])).strip().strip('"')
@@ -199,7 +209,7 @@ def memory(sec, tsk):
     write(os.path.join(MEMORY_DIR, "MEMORY.md"), "\n".join(body))
 
 def _agent_body(sec, tsk, heading="agent quick-start"):
-    live_sec = [i for i in sec if i.get("volatility") == "decays-with-code"]
+    live_sec = [i for i in sec if is_open_finding(i)]
     live_tsk = [i for i in tsk if i.get("status") == "active"]
     def t(i): return (i.get("live_summary") or i.get("title", i["name"])).strip().strip('"')
     body = [f"# {PROJECT} — {heading}\n", GEN,
@@ -228,12 +238,12 @@ def cursor_rules(sec, tsk):
 def sync_claude_md(sec, tsk):
     path = os.path.join(ROOT, "CLAUDE.md")
     if not os.path.exists(path):
-        print(f"  ⚠️  no CLAUDE.md at {ROOT} — LIVE blocks not wired (see HOWTO §6).")
+        print(f"  ⚠️  no CLAUDE.md at {ROOT} — LIVE blocks not wired.\n      Add the two marker pairs — see https://github.com/karrvel/kb-template#quick-start")
         return
     txt = open(path, errors="ignore").read()
     def t(i): return (i.get("live_summary") or i.get("title", i["name"])).strip().strip('"')
     blocks = {
-        "live-security": "\n".join(f"- [[{i['name']}]] — {t(i)}" for i in sec if i.get("volatility") == "decays-with-code") or "_none open_",
+        "live-security": "\n".join(f"- [[{i['name']}]] — {t(i)}" for i in sec if is_open_finding(i)) or "_none open_",
         "open-work": "\n".join(f"- [[{i['name']}]] — {t(i)}" for i in tsk if i.get("status") == "active") or "_none open_",
     }
     hit = 0
@@ -242,7 +252,7 @@ def sync_claude_md(sec, tsk):
         pat = re.compile(re.escape(b) + r".*?" + re.escape(e), re.S)
         if pat.search(txt): txt = pat.sub(f"{b}\n{content}\n{e}", txt); hit += 1
     if hit: open(path, "w").write(txt); print(f"  ✓ CLAUDE.md ({hit} LIVE blocks synced)")
-    else: print("  ⚠️  CLAUDE.md has no <!-- BEGIN:sync:* --> markers — LIVE blocks NOT synced. Add them (see HOWTO §6).")
+    else: print("  ⚠️  CLAUDE.md has no <!-- BEGIN:sync:* --> markers — LIVE blocks NOT synced.\n      Add them — see https://github.com/karrvel/kb-template#quick-start")
 
 if __name__ == "__main__":
     # Startup integrity check: if MEMORY.md already exists and references this script or INDEX.md,

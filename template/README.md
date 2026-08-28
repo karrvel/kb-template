@@ -83,6 +83,20 @@ no plugin needed to read/grep/diff.
 - **decays-with-code** ⚠️ — accurate only as of `updated:`; **re-verify against code before acting.**
 - **one-shot** — a closed/resolved record kept for history.
 
+### Tagging a security shard so it lands in the right place
+`status` and `volatility` answer different questions, and the always-loaded
+**🔴 LIVE — open security findings** block needs **both**:
+
+| Shard | `status` | `volatility` | Appears in the LIVE block? |
+|---|---|---|---|
+| An open finding about this code | `active` | `decays-with-code` | **yes** — that's what LIVE is for |
+| A finding you've fixed | `resolved` | `decays-with-code` | no |
+| A standing rule ("never commit secrets") | `active` | `durable` | no — it's policy, not a finding |
+
+Tag a real finding `durable` and it stays out of the LIVE tier; leave a fixed one `active` and
+agents keep being told it's open. The `security/` MOC groups by volatility instead, so durable
+rules and findings are both browsable there.
+
 ## Maintenance discipline (the part everyone skips)
 - **Append, don't rewrite.** New event → a line in [[log]]. New trap → a shard in `gotchas/`.
 - **Write the *why*.** Decisions die with the context window unless captured in `decisions/`.
