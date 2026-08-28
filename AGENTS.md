@@ -69,8 +69,13 @@ You're editing the template, tooling, or research here. Rules:
   names, personal emails) go in a **git-ignored** `.pii-denylist.local` at the repo root — never
   commit it. Run manually anytime: `python3 tooling/pii-scan.py [--range origin/main..HEAD]`.
   False positive? Add the safe substring to `ALLOW` in `pii-scan.py`.
-- **The research is fact-checked.** `research/` claims were adversarially verified; don't add claims
-  without a primary source, and preserve the "hedges / refuted claims" honesty.
+- **The research is fact-checked, and `research/` is published.** Claims here were adversarially
+  verified: don't add one without a primary source, and preserve the "hedges / refuted claims"
+  honesty. Everything in `research/` must also be **project-agnostic and PII-free** — it ships to
+  a public repo. If a finding came out of work on a specific codebase, distil the portable,
+  scrubbed conclusion and leave the raw write-up (prod names, paths, internal URLs, session
+  transcripts) wherever it originated. Never paste an unredacted audit in wholesale; the pre-push
+  PII guard catches the mechanical patterns, not a paragraph naming someone's internal service.
 - After changing `template/`, validate it by pointing the vault at the template (the scripts default
   `KB_VAULT` to `$KIT/_knowledge`, which doesn't exist in the kit — you must override it):
   `KB_VAULT="$PWD/template" python3 tooling/kb-lint.py && KB_VAULT="$PWD/template" python3 tooling/kb-links.py`.
